@@ -158,7 +158,6 @@
             font-size: 18px;
         }
 
-
         .piece.zhaoyun {
             background: linear-gradient(145deg, #f8e71c, #dcc617);
             width: 80px;
@@ -169,6 +168,14 @@
 
         .piece.guanyu {
             background: linear-gradient(145deg, #d0021b, #a50116);
+            width: 164px;
+            height: 80px;
+            font-size: 16px;
+        }
+
+        /* 新增：张飞（横向两格） */
+        .piece.zhangfei {
+            background: linear-gradient(145deg, #3CB371, #2E8B57);
             width: 164px;
             height: 80px;
             font-size: 16px;
@@ -612,6 +619,14 @@
                         positions: [[5, 3], [5, 4]],
                         size: [1, 2],
                         className: 'guanyu'
+                    },
+                    /* 新增：张飞，第二行第2列和第3列，横向两格 */
+                    zhangfei: {
+                        id: 'zhangfei',
+                        name: '张飞',
+                        positions: [[2, 2], [2, 3]],
+                        size: [1, 2],
+                        className: 'zhangfei'
                     },
                     soldier1: {
                         id: 'soldier1',
@@ -1128,76 +1143,66 @@
                 }
                 
                 historyList.innerHTML = tracks.map((track, index) => `
-                    <div class="history-item" data-track-id="${track.id}">
-                        <div class="history-item-header">
-                            <span class="history-item-name">${track.name}</span>
-                            <span class="history-item-stats">${track.totalMoves}步</span>
+                        <div class="history-item" data-track-id="${track.id}">
+                            <div class="history-item-header">
+                                <div class="history-item-name">${track.name || '未命名记录'}</div>
+                                <div class="history-item-stats">
+                                    ${track.totalMoves}步 | ${track.isComplete ? '✅ 完成' : '❌ 未完成'}
+                                </div>
+                            </div>
+                            <div class="history-item-content">
+                                <div>开始时间：${new Date(track.startTime).toLocaleString()}</div>
+                                <div>结束时间：${track.endTime ? new Date(track.endTime).toLocaleString() : '未结束'}</div>
+                            </div>
                         </div>
-                        <div class="history-item-stats">
-                            ${new Date(track.startTime).toLocaleString()}
-                            ${track.isComplete ? '✅ 已完成' : '❌ 未完成'}
-                        </div>
-                    </div>
-                `).join('');
+                    `).join('');
                 
-                // 添加点击事件
-                historyList.querySelectorAll('.history-item').forEach(item => {
+                // 绑定事件 - 选择和对比
+                const items = historyList.querySelectorAll('.history-item');
+                const compareBtn = document.getElementById('compare-btn');
+                
+                items.forEach(item => {
                     item.addEventListener('click', () => {
+                        // 切换选中状态
                         item.classList.toggle('selected');
-                        this.updateCompareButton();
-                        this.updateTrajectoryDisplay();
+                        
+                        // 更新对比按钮状态（至少选择两个）
+                        const selectedCount = historyList.querySelectorAll('.history-item.selected').length;
+                        compareBtn.disabled = selectedCount < 2;
                     });
                 });
             }
             
-            updateCompareButton() {
-                const selectedItems = document.querySelectorAll('.history-item.selected');
-                document.getElementById('compare-btn').disabled = selectedItems.length < 2;
-            }
-            
-            updateTrajectoryDisplay() {
-                this.visualizer.clearTrajectories();
-                const selectedItems = document.querySelectorAll('.history-item.selected');
-                
-                selectedItems.forEach((item, index) => {
-                    const trackId = item.dataset.trackId;
-                    const track = this.historyManager.getTrackById(trackId);
-                    if (track) {
-                        this.visualizer.drawTrajectory(track, index + 1);
-                    }
-                });
-            }
-            
             compareTrajectories() {
-                const selectedItems = document.querySelectorAll('.history-item.selected');
-                console.log('Selected items for comparison:', selectedItems.length);
+                const historyList = document.getElementById('history-list');
+                const selectedItems = historyList.querySelectorAll('.history-item.selected');
                 
                 if (selectedItems.length < 2) {
-                    alert('请至少选择2条轨迹进行对比');
+                    alert('请至少选择两条记录进行对比');
                     return;
                 }
                 
-                // 清除当前显示的轨迹
-                this.visualizer.clearTrajectories();
-                console.log('Cleared existing trajectories');
-                
-                // 收集选中的轨迹数据和对比信息
-                const compareData = [];
-                selectedItems.forEach((item, index) => {
+                // 加载选中的轨迹数据
+                const tracks = Array.from(selectedItems).map(item => {
                     const trackId = item.dataset.trackId;
-                    const track = this.historyManager.getTrackById(trackId);
-                    console.log(`Track ${index}:`, track);
-                    
-                    if (track) {
-                        compareData.push({
-                            track: track,
-                            colorIndex: index + 1,
-                            name: track.name,
-                            moves: track.totalMoves,
-                            duration: track.endTime ? Math.round((track.endTime - track.startTime) / 1000) : 0,
-                            completed: track.isComplete
-                        });
-                        
+                    return this.historyManager.getTrackById(trackId);
+                }).filter(Boolean);
+                
+                // 清空现有轨迹绘制
+                this.visualizer.clearTrajectories();
+                
+                // 对比数据
+                const compareData = tracks.map((track, index) => ({
+                    name: track.name || `记录${index + 1}`,
+                    moves: track.totalMoves,
+                    duration: track.endTime ? Math.round((track.endTime - track.startTime) / 1000) : 0,
+                    completed: track.isComplete,
+                    colorIndex: index + 1 // 第一条留给当前轨迹（如有）
+                }));
+                
+                // 逐条绘制选中轨迹
+                tracks.forEach((track, index) => {
+                    if (track && track.moves && track.moves.length) {
                         // 绘制轨迹
                         console.log(`Drawing trajectory ${index + 1} with ${track.moves.length} moves`);
                         this.visualizer.drawTrajectory(track, index + 1);

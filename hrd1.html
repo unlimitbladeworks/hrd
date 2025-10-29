@@ -1,0 +1,1566 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>华容道游戏</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: "Microsoft YaHei", "SimSun", sans-serif;
+            background: linear-gradient(135deg, #8B4513, #D2B48C);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .game-container {
+            background: #F5DEB3;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            padding: 20px;
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #8B0000;
+            font-size: 32px;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            font-weight: bold;
+        }
+
+        .game-controls {
+            margin-bottom: 20px;
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            font-size: 14px;
+            color: #654321;
+            font-weight: bold;
+        }
+
+        .control-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        button {
+            background: linear-gradient(145deg, #DEB887, #CD853F);
+            border: none;
+            padding: 8px 15px;
+            border-radius: 8px;
+            color: #654321;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 12px;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            background: linear-gradient(145deg, #CD853F, #DEB887);
+            transform: translateY(-2px);
+            box-shadow: 3px 3px 8px rgba(0,0,0,0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+            box-shadow: 1px 1px 3px rgba(0,0,0,0.2);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .board-container {
+            position: relative;
+            margin: 0 auto;
+            width: 340px;
+            height: 600px;
+        }
+
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(4, 80px);
+            grid-template-rows: repeat(5, 80px);
+            gap: 2px;
+            background: #8B4513;
+            padding: 10px;
+            border-radius: 10px;
+            border: 3px solid #654321;
+            margin-bottom: 10px;
+        }
+
+        .cell {
+            background: #DEB887;
+            border: 1px solid #CD853F;
+            border-radius: 3px;
+        }
+
+        .pieces-container {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            width: 328px;
+            height: 410px;
+            pointer-events: none;
+        }
+
+        .piece {
+            position: absolute;
+            border: 2px solid #654321;
+            border-radius: 8px;
+            cursor: grab;
+            pointer-events: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 12px;
+            color: white;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            transition: all 0.2s ease;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+            user-select: none;
+        }
+
+        .piece:hover {
+            transform: scale(1.05);
+            box-shadow: 3px 3px 8px rgba(0,0,0,0.4);
+        }
+
+        .piece.dragging {
+            opacity: 0.8;
+            z-index: 1000;
+            transform: scale(1.1);
+            cursor: grabbing;
+        }
+
+        .piece.caocao {
+            background: linear-gradient(145deg, #2c5aa0, #1e3f73);
+            width: 80px;
+            height: 164px;
+            font-size: 18px;
+        }
+
+
+        .piece.zhaoyun {
+            background: linear-gradient(145deg, #f8e71c, #dcc617);
+            width: 80px;
+            height: 164px;
+            font-size: 16px;
+            color: #654321;
+        }
+
+        .piece.guanyu {
+            background: linear-gradient(145deg, #d0021b, #a50116);
+            width: 164px;
+            height: 80px;
+            font-size: 16px;
+        }
+
+        .piece.soldier {
+            background: linear-gradient(145deg, #bd10e0, #9a0db8);
+            width: 80px;
+            height: 80px;
+            font-size: 14px;
+        }
+
+        .exit-area {
+            position: absolute;
+            bottom: -14px;
+            left: 174px;
+            width: 80px;
+            height: 164px;
+            background: #FFD700;
+            border: 2px dashed #B8860B;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #8B4513;
+        }
+
+        .exit-label {
+            font-size: 14px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #F5DEB3;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            max-width: 300px;
+            width: 90%;
+        }
+
+        .modal h2, .modal h3 {
+            color: #8B0000;
+            margin-bottom: 15px;
+        }
+
+        .modal p {
+            color: #654321;
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+
+        .hint-text {
+            background: #FFFACD;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #FFD700;
+            margin: 15px 0;
+            text-align: left;
+        }
+
+        @media (max-width: 480px) {
+            .game-container {
+                padding: 15px;
+            }
+            
+            h1 {
+                font-size: 24px;
+            }
+            
+            .control-buttons {
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+            
+            button {
+                padding: 6px 12px;
+                font-size: 11px;
+            }
+        }
+
+        .valid-drop-zone {
+            background: rgba(144, 238, 144, 0.5) !important;
+        }
+
+        .invalid-drop-zone {
+            background: rgba(255, 99, 71, 0.5) !important;
+        }
+
+        /* 轨迹记录相关样式 */
+        .trajectory-svg {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            pointer-events: none;
+            z-index: 600; /* 提高层级，确保在棋子上方 */
+        }
+
+        .trajectory-line {
+            stroke-width: 4;
+            fill: none;
+            opacity: 0.8;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .trajectory-arrow {
+            opacity: 0.8;
+        }
+
+        .trajectory-start-point, .trajectory-end-point {
+            opacity: 1;
+        }
+
+        .current-track { stroke: #FFD700; }
+        .history-track-1 { stroke: #FF6B6B; }
+        .history-track-2 { stroke: #4ECDC4; }
+        .history-track-3 { stroke: #45B7D1; }
+        .history-track-4 { stroke: #96CEB4; }
+
+        /* 历史记录弹窗样式 */
+        .history-modal-content {
+            max-width: 500px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .history-list {
+            max-height: 400px;
+            overflow-y: auto;
+            margin: 15px 0;
+        }
+
+        .history-item {
+            background: #FFFACD;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 4px solid #FFD700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .history-item:hover {
+            background: #FFF8DC;
+            transform: translateX(5px);
+        }
+
+        .history-item.selected {
+            background: #E6F3FF;
+            border-left-color: #007ACC;
+        }
+
+        .history-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .history-item-name {
+            font-weight: bold;
+            color: #8B0000;
+        }
+
+        .history-item-stats {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .history-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        /* 保存轨迹表单样式 */
+        .save-track-form {
+            margin: 15px 0;
+        }
+
+        .save-track-form label {
+            display: block;
+            margin-bottom: 5px;
+            color: #654321;
+            font-weight: bold;
+        }
+
+        .save-track-form input {
+            width: 100%;
+            padding: 8px;
+            border: 2px solid #DEB887;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .track-stats {
+            background: #FFFACD;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+
+        .save-track-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        /* 记录按钮状态 */
+        .btn-recording {
+            background: linear-gradient(145deg, #FF6B6B, #FF5252) !important;
+            color: white !important;
+        }
+
+        /* 对比面板样式 */
+        .compare-panel {
+            background: #F0F8FF;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+            border: 2px solid #87CEEB;
+        }
+
+        .compare-panel h4 {
+            color: #1E90FF;
+            margin: 0 0 15px 0;
+            text-align: center;
+        }
+
+        .compare-content {
+            display: grid;
+            gap: 10px;
+        }
+
+        .compare-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: white;
+            border-radius: 5px;
+            border-left: 4px solid;
+        }
+
+        .compare-item-name {
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+        }
+
+        .compare-color-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .compare-item-stats {
+            font-size: 12px;
+            color: #666;
+        }
+
+        #close-compare-btn {
+            width: 100%;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>华容道</h1>
+        
+        <div class="game-controls">
+            <div class="game-info">
+                <span>步数: <span id="move-count">0</span></span>
+                <span>最佳: <span id="best-score">--</span></span>
+            </div>
+            <div class="control-buttons">
+                <button id="hint-btn">提示</button>
+                <button id="undo-btn" disabled>撤销</button>
+                <button id="reset-btn">重开</button>
+                <button id="track-btn">开始记录</button>
+                <button id="history-btn">历史记录</button>
+            </div>
+        </div>
+
+        <div class="board-container">
+            <!-- 轨迹SVG容器 -->
+            <svg class="trajectory-svg" id="trajectory-svg" width="340" height="420">
+                <!-- 轨迹线条将动态生成 -->
+            </svg>
+            <div class="game-board" id="game-board">
+                <!-- 棋盘格子将动态生成 -->
+            </div>
+            <div class="pieces-container" id="pieces-container">
+                <!-- 棋子将动态生成 -->
+            </div>
+            <div class="exit-area">
+                <div class="exit-label">出口</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 胜利弹窗 -->
+    <div class="modal" id="victory-modal">
+        <div class="modal-content">
+            <h2>🎉 恭喜通关！</h2>
+            <p>曹操成功脱逃华容道！</p>
+            <p>总步数: <span id="final-moves">0</span></p>
+            <p id="new-record" style="display: none; color: #FFD700; font-weight: bold;">🏆 新记录！</p>
+            <button id="play-again-btn">再玩一次</button>
+        </div>
+    </div>
+
+    <!-- 提示弹窗 -->
+    <div class="modal" id="hint-modal">
+        <div class="modal-content">
+            <h3>💡 游戏提示</h3>
+            <div class="hint-text" id="hint-text"></div>
+            <button id="close-hint-btn">知道了</button>
+        </div>
+    </div>
+
+    <!-- 历史记录弹窗 -->
+    <div class="modal" id="history-modal">
+        <div class="modal-content history-modal-content">
+            <h3>📊 轨迹历史记录</h3>
+            <div class="history-list" id="history-list">
+                <!-- 历史记录项将动态生成 -->
+            </div>
+            <div class="history-controls">
+                <button id="compare-btn" disabled>对比轨迹</button>
+                <button id="close-history-btn">关闭</button>
+            </div>
+            <div class="compare-panel" id="compare-panel" style="display: none;">
+                <h4>📊 轨迹对比分析</h4>
+                <div class="compare-content" id="compare-content">
+                    <!-- 对比数据将动态生成 -->
+                </div>
+                <button id="close-compare-btn">关闭对比</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 保存轨迹弹窗 -->
+    <div class="modal" id="save-track-modal">
+        <div class="modal-content">
+            <h3>💾 保存轨迹记录</h3>
+            <div class="save-track-form">
+                <label for="track-name">记录名称：</label>
+                <input type="text" id="track-name" placeholder="输入记录名称">
+            </div>
+            <div class="track-stats">
+                <p>总步数: <span id="save-moves">0</span></p>
+                <p>用时: <span id="save-time">0</span>秒</p>
+            </div>
+            <div class="save-track-controls">
+                <button id="confirm-save-btn">保存</button>
+                <button id="cancel-save-btn">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class HuarongdaoGame {
+            constructor() {
+                this.boardSize = { rows: 5, cols: 4 };
+                this.cellSize = 82; // 包含间隙
+                this.moveCount = 0;
+                this.moveHistory = [];
+                this.bestScore = parseInt(localStorage.getItem('huarongdao-best')) || null;
+                this.isDragging = false;
+                this.draggedPiece = null;
+                this.dragOffset = { x: 0, y: 0 };
+                
+                // 轨迹记录相关属性
+                this.isTracking = false;
+                this.currentTrack = null;
+                this.trackStartTime = null;
+                this.trajectoryManager = new TrajectoryManager();
+                this.historyManager = new HistoryManager();
+                this.visualizer = new TrajectoryVisualizer();
+                
+                // 游戏提示数组
+                this.hints = [
+                    "目标是让曹操（蓝色大方块）移动到棋盘底部中央的出口位置。",
+                    "每次只能移动一个棋子一格，棋子不能重叠或越界。",
+                    "小兵体积小，移动灵活，可以为大棋子让路。",
+                    "关羽可以左右移动，利用这个特点为其他棋子腾出空间。",
+                    "赵云和张飞是竖直棋子，可以上下移动来调整布局。",
+                    "先移动边缘的棋子，为中央的曹操创造移动路径。",
+                    "观察空格的位置，合理利用空间进行棋子调换。"
+                ];
+
+                this.initializePieces();
+                this.initializeGame();
+                this.bindEvents();
+                this.visualizer.initSVG();
+            }
+
+            // 初始化棋子状态（基于图像布局）
+            initializePieces() {
+                this.pieces = {
+                    caocao: {
+                        id: 'caocao',
+                        name: '曹操',
+                        positions: [[1, 4], [2, 4]],
+                        size: [2, 1],
+                        className: 'caocao'
+                    },
+                    zhaoyun: {
+                        id: 'zhaoyun',
+                        name: '赵云',
+                        positions: [[4, 2], [5, 2]],
+                        size: [2, 1],
+                        className: 'zhaoyun'
+                    },
+                    guanyu: {
+                        id: 'guanyu',
+                        name: '关羽',
+                        positions: [[5, 3], [5, 4]],
+                        size: [1, 2],
+                        className: 'guanyu'
+                    },
+                    soldier1: {
+                        id: 'soldier1',
+                        name: '兵',
+                        positions: [[4, 3]],
+                        size: [1, 1],
+                        className: 'soldier'
+                    }
+                };
+
+                // 保存初始状态
+                this.initialPieces = JSON.parse(JSON.stringify(this.pieces));
+            }
+
+            // 初始化游戏
+            initializeGame() {
+                this.createBoard();
+                this.createPieces();
+                this.updateDisplay();
+            }
+
+            // 创建棋盘
+            createBoard() {
+                const gameBoard = document.getElementById('game-board');
+                gameBoard.innerHTML = '';
+                
+                for (let row = 1; row <= this.boardSize.rows; row++) {
+                    for (let col = 1; col <= this.boardSize.cols; col++) {
+                        const cell = document.createElement('div');
+                        cell.className = 'cell';
+                        cell.dataset.row = row;
+                        cell.dataset.col = col;
+                        gameBoard.appendChild(cell);
+                    }
+                }
+            }
+
+            // 创建棋子
+            createPieces() {
+                const piecesContainer = document.getElementById('pieces-container');
+                piecesContainer.innerHTML = '';
+
+                Object.values(this.pieces).forEach(piece => {
+                    const pieceElement = document.createElement('div');
+                    pieceElement.className = `piece ${piece.className}`;
+                    pieceElement.dataset.pieceId = piece.id;
+                    pieceElement.textContent = piece.name;
+                    
+                    this.positionPiece(pieceElement, piece);
+                    piecesContainer.appendChild(pieceElement);
+                });
+            }
+
+            // 定位棋子
+            positionPiece(element, piece) {
+                const topLeft = piece.positions[0];
+                const left = (topLeft[1] - 1) * this.cellSize;
+                const top = (topLeft[0] - 1) * this.cellSize;
+                
+                element.style.left = `${left}px`;
+                element.style.top = `${top}px`;
+            }
+
+            // 绑定事件
+            bindEvents() {
+                // 棋子拖拽事件
+                document.addEventListener('mousedown', this.handleMouseDown.bind(this));
+                document.addEventListener('mousemove', this.handleMouseMove.bind(this));
+                document.addEventListener('mouseup', this.handleMouseUp.bind(this));
+                
+                // 触摸事件
+                document.addEventListener('touchstart', this.handleTouchStart.bind(this), { passive: false });
+                document.addEventListener('touchmove', this.handleTouchMove.bind(this), { passive: false });
+                document.addEventListener('touchend', this.handleTouchEnd.bind(this));
+
+                // 按钮事件
+                document.getElementById('reset-btn').addEventListener('click', this.resetGame.bind(this));
+                document.getElementById('undo-btn').addEventListener('click', this.undoMove.bind(this));
+                document.getElementById('hint-btn').addEventListener('click', this.showHint.bind(this));
+                document.getElementById('play-again-btn').addEventListener('click', this.resetGame.bind(this));
+                document.getElementById('close-hint-btn').addEventListener('click', this.closeHint.bind(this));
+                
+                // 轨迹记录按钮事件
+                document.getElementById('track-btn').addEventListener('click', this.toggleTracking.bind(this));
+                document.getElementById('history-btn').addEventListener('click', this.showHistory.bind(this));
+                document.getElementById('close-history-btn').addEventListener('click', this.closeHistory.bind(this));
+                document.getElementById('compare-btn').addEventListener('click', this.compareTrajectories.bind(this));
+                document.getElementById('confirm-save-btn').addEventListener('click', this.confirmSaveTrack.bind(this));
+                document.getElementById('cancel-save-btn').addEventListener('click', this.cancelSaveTrack.bind(this));
+                document.getElementById('close-compare-btn').addEventListener('click', this.closeCompare.bind(this));
+            }
+
+            // 鼠标按下
+            handleMouseDown(e) {
+                if (e.target.classList.contains('piece')) {
+                    this.startDrag(e.target, e.clientX, e.clientY);
+                    e.preventDefault();
+                }
+            }
+
+            // 鼠标移动
+            handleMouseMove(e) {
+                if (this.isDragging) {
+                    this.updateDrag(e.clientX, e.clientY);
+                    e.preventDefault();
+                }
+            }
+
+            // 鼠标释放
+            handleMouseUp(e) {
+                if (this.isDragging) {
+                    this.endDrag(e.clientX, e.clientY);
+                }
+            }
+
+            // 触摸开始
+            handleTouchStart(e) {
+                if (e.target.classList.contains('piece')) {
+                    const touch = e.touches[0];
+                    this.startDrag(e.target, touch.clientX, touch.clientY);
+                    e.preventDefault();
+                }
+            }
+
+            // 触摸移动
+            handleTouchMove(e) {
+                if (this.isDragging) {
+                    const touch = e.touches[0];
+                    this.updateDrag(touch.clientX, touch.clientY);
+                    e.preventDefault();
+                }
+            }
+
+            // 触摸结束
+            handleTouchEnd(e) {
+                if (this.isDragging) {
+                    const touch = e.changedTouches[0];
+                    this.endDrag(touch.clientX, touch.clientY);
+                }
+            }
+
+            // 开始拖拽
+            startDrag(pieceElement, clientX, clientY) {
+                this.isDragging = true;
+                this.draggedPiece = pieceElement;
+                
+                const rect = pieceElement.getBoundingClientRect();
+                this.dragOffset = {
+                    x: clientX - rect.left,
+                    y: clientY - rect.top
+                };
+                
+                pieceElement.classList.add('dragging');
+                this.saveCurrentState();
+            }
+
+            // 更新拖拽
+            updateDrag(clientX, clientY) {
+                if (!this.isDragging || !this.draggedPiece) return;
+
+                const boardRect = document.getElementById('pieces-container').getBoundingClientRect();
+                const newX = clientX - boardRect.left - this.dragOffset.x;
+                const newY = clientY - boardRect.top - this.dragOffset.y;
+
+                this.draggedPiece.style.left = `${newX}px`;
+                this.draggedPiece.style.top = `${newY}px`;
+
+                // 显示有效放置区域
+                this.highlightDropZones();
+            }
+
+            // 结束拖拽
+            endDrag(clientX, clientY) {
+                if (!this.isDragging || !this.draggedPiece) return;
+
+                const pieceId = this.draggedPiece.dataset.pieceId;
+                const piece = this.pieces[pieceId];
+                
+                // 计算新位置
+                const boardRect = document.getElementById('pieces-container').getBoundingClientRect();
+                const newX = clientX - boardRect.left - this.dragOffset.x;
+                const newY = clientY - boardRect.top - this.dragOffset.y;
+                
+                const newRow = Math.round(newY / this.cellSize) + 1;
+                const newCol = Math.round(newX / this.cellSize) + 1;
+
+                // 验证移动
+                if (this.isValidMove(piece, newRow, newCol)) {
+                    this.movePiece(pieceId, newRow, newCol);
+                } else {
+                    // 恢复原位置
+                    this.positionPiece(this.draggedPiece, piece);
+                }
+
+                // 清理拖拽状态
+                this.draggedPiece.classList.remove('dragging');
+                this.clearDropZoneHighlights();
+                this.isDragging = false;
+                this.draggedPiece = null;
+            }
+
+            // 高亮有效放置区域
+            highlightDropZones() {
+                if (!this.draggedPiece) return;
+
+                const pieceId = this.draggedPiece.dataset.pieceId;
+                const piece = this.pieces[pieceId];
+                
+                // 清除之前的高亮
+                this.clearDropZoneHighlights();
+
+                // 检查所有可能的位置
+                for (let row = 1; row <= this.boardSize.rows; row++) {
+                    for (let col = 1; col <= this.boardSize.cols; col++) {
+                        const cells = this.getCellsForPosition(row, col, piece.size);
+                        const isValid = this.isValidMove(piece, row, col);
+                        
+                        cells.forEach(([r, c]) => {
+                            const cell = document.querySelector(`[data-row="${r}"][data-col="${c}"]`);
+                            if (cell) {
+                                cell.classList.add(isValid ? 'valid-drop-zone' : 'invalid-drop-zone');
+                            }
+                        });
+                    }
+                }
+            }
+
+            // 清除放置区域高亮
+            clearDropZoneHighlights() {
+                document.querySelectorAll('.valid-drop-zone, .invalid-drop-zone').forEach(cell => {
+                    cell.classList.remove('valid-drop-zone', 'invalid-drop-zone');
+                });
+            }
+
+            // 验证移动是否有效
+            isValidMove(piece, newRow, newCol) {
+                // 检查边界
+                const [rows, cols] = piece.size;
+                
+                // 特殊处理：允许曹操进入出口区域（第6行第3列）
+                if (piece.id === 'caocao' && newRow === 6 && newCol === 3) {
+                    // 曹操移动到出口区域，检查是否只移动了一格
+                    const currentPos = piece.positions[0];
+                    const distance = Math.abs(newRow - currentPos[0]) + Math.abs(newCol - currentPos[1]);
+                    if (distance !== 1) {
+                        return false;
+                    }
+                    // 出口区域不需要检查占用（总是空的）
+                    return true;
+                }
+                
+                // 普通边界检查
+                if (newRow < 1 || newCol < 1 || 
+                    newRow + rows - 1 > this.boardSize.rows || 
+                    newCol + cols - 1 > this.boardSize.cols) {
+                    return false;
+                }
+
+                // 检查是否只移动了一格
+                const currentPos = piece.positions[0];
+                const distance = Math.abs(newRow - currentPos[0]) + Math.abs(newCol - currentPos[1]);
+                if (distance !== 1) {
+                    return false;
+                }
+
+                // 检查目标位置是否被占用
+                const newPositions = this.getCellsForPosition(newRow, newCol, piece.size);
+                return !this.isPositionOccupied(newPositions, piece.id);
+            }
+
+            // 获取指定位置和大小的所有格子
+            getCellsForPosition(row, col, size) {
+                const [rows, cols] = size;
+                const cells = [];
+                for (let r = 0; r < rows; r++) {
+                    for (let c = 0; c < cols; c++) {
+                        cells.push([row + r, col + c]);
+                    }
+                }
+                return cells;
+            }
+
+            // 检查位置是否被占用
+            isPositionOccupied(positions, excludePieceId) {
+                const occupiedPositions = new Set();
+                
+                Object.values(this.pieces).forEach(piece => {
+                    if (piece.id !== excludePieceId) {
+                        piece.positions.forEach(pos => {
+                            occupiedPositions.add(`${pos[0]},${pos[1]}`);
+                        });
+                    }
+                });
+
+                return positions.some(pos => 
+                    occupiedPositions.has(`${pos[0]},${pos[1]}`)
+                );
+            }
+
+            // 移动棋子
+            movePiece(pieceId, newRow, newCol) {
+                const piece = this.pieces[pieceId];
+                const oldPositions = [...piece.positions]; // 保存移动前位置
+                const newPositions = this.getCellsForPosition(newRow, newCol, piece.size);
+                
+                piece.positions = newPositions;
+                
+                const pieceElement = document.querySelector(`[data-piece-id="${pieceId}"]`);
+                this.positionPiece(pieceElement, piece);
+                
+                this.moveCount++;
+                this.updateDisplay();
+                
+                // 记录轨迹
+                if (this.isTracking && this.currentTrack) {
+                    this.trajectoryManager.addMove(pieceId, oldPositions[0], newPositions[0]);
+                    this.visualizer.updateCurrentTrajectory(this.currentTrack);
+                }
+                
+                // 新增：自动移动检测 - 当曹操到达(4,3)-(5,3)时自动移动到出口
+                if (pieceId === 'caocao' && 
+                    newPositions.some(pos => pos[0] === 4 && pos[1] === 3) &&
+                    newPositions.some(pos => pos[0] === 5 && pos[1] === 3)) {
+                    
+                    // 延迟自动移动到出口位置
+                    setTimeout(() => {
+                        // 自动设置曹操到出口位置(5,3)-(6,3)
+                        this.pieces.caocao.positions = [[5, 3], [6, 3]];
+                        this.positionPiece(pieceElement, this.pieces.caocao);
+                        
+                        // 触发胜利
+                        setTimeout(() => this.showVictory(), 300);
+                    }, 500); // 0.5秒延迟让玩家看到移动效果
+                    
+                    return; // 避免执行下面的胜利检查
+                }
+                
+                // 特殊检测：曹操进入出口区域立即胜利
+                if (pieceId === 'caocao' && newPositions.some(pos => pos[0] === 6 && pos[1] === 3)) {
+                    setTimeout(() => this.showVictory(), 300);
+                    return;
+                }
+                
+                // 检查胜利条件
+                if (this.checkVictory()) {
+                    setTimeout(() => this.showVictory(), 300);
+                }
+            }
+
+            // 保存当前状态
+            saveCurrentState() {
+                this.moveHistory.push({
+                    pieces: JSON.parse(JSON.stringify(this.pieces)),
+                    moveCount: this.moveCount
+                });
+            }
+
+            // 撤销移动
+            undoMove() {
+                if (this.moveHistory.length === 0) return;
+                
+                const lastState = this.moveHistory.pop();
+                this.pieces = lastState.pieces;
+                this.moveCount = lastState.moveCount;
+                
+                this.createPieces();
+                this.updateDisplay();
+            }
+
+            // 检查胜利条件
+            checkVictory() {
+                const caocao = this.pieces.caocao;
+                // 胜利条件：曹操的一格占据出口区域(第6行第3列)
+                return caocao.positions.some(pos => 
+                    pos[0] === 6 && pos[1] === 3
+                );
+            }
+
+            // 显示胜利界面
+            showVictory() {
+                // 如果正在记录轨迹，自动停止并保存
+                if (this.isTracking && this.currentTrack && this.currentTrack.moves.length > 0) {
+                    this.isTracking = false;
+                    this.trajectoryManager.stopTracking();
+                    
+                    // 生成胜利记录的默认名称
+                    const now = new Date();
+                    const defaultName = `胜利-${now.getMonth()+1}月${now.getDate()}日 ${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
+                    
+                    // 完善轨迹信息
+                    this.currentTrack.name = defaultName;
+                    this.currentTrack.endTime = Date.now();
+                    this.currentTrack.isComplete = true; // 胜利记录标记为完成
+                    
+                    // 自动保存到历史记录
+                    this.historyManager.saveTrack(this.currentTrack, defaultName);
+                    
+                    // 重置记录按钮状态
+                    const trackBtn = document.getElementById('track-btn');
+                    trackBtn.textContent = '开始记录';
+                    trackBtn.classList.remove('btn-recording');
+                    
+                    this.currentTrack = null;
+                }
+                
+                document.getElementById('final-moves').textContent = this.moveCount;
+                
+                // 检查是否创造新记录
+                const newRecordElement = document.getElementById('new-record');
+                if (!this.bestScore || this.moveCount < this.bestScore) {
+                    this.bestScore = this.moveCount;
+                    localStorage.setItem('huarongdao-best', this.bestScore);
+                    newRecordElement.style.display = 'block';
+                } else {
+                    newRecordElement.style.display = 'none';
+                }
+                
+                document.getElementById('victory-modal').classList.add('show');
+                this.updateDisplay();
+            }
+
+            // 显示提示
+            showHint() {
+                const randomHint = this.hints[Math.floor(Math.random() * this.hints.length)];
+                document.getElementById('hint-text').textContent = randomHint;
+                document.getElementById('hint-modal').classList.add('show');
+            }
+
+            // 关闭提示
+            closeHint() {
+                document.getElementById('hint-modal').classList.remove('show');
+            }
+
+            // 重置游戏
+            resetGame() {
+                // 如果正在记录轨迹，停止记录（但不保存，因为游戏被重置）
+                if (this.isTracking) {
+                    this.isTracking = false;
+                    this.trajectoryManager.stopTracking();
+                    
+                    // 重置记录按钮状态
+                    const trackBtn = document.getElementById('track-btn');
+                    trackBtn.textContent = '开始记录';
+                    trackBtn.classList.remove('btn-recording');
+                    
+                    this.currentTrack = null;
+                }
+                
+                this.pieces = JSON.parse(JSON.stringify(this.initialPieces));
+                this.moveCount = 0;
+                this.moveHistory = [];
+                
+                this.createPieces();
+                this.updateDisplay();
+                
+                // 关闭弹窗
+                document.getElementById('victory-modal').classList.remove('show');
+                document.getElementById('hint-modal').classList.remove('show');
+            }
+
+            // 更新显示
+            updateDisplay() {
+                document.getElementById('move-count').textContent = this.moveCount;
+                document.getElementById('best-score').textContent = this.bestScore || '--';
+                document.getElementById('undo-btn').disabled = this.moveHistory.length === 0;
+            }
+            
+            // 轨迹记录相关方法
+            toggleTracking() {
+                const trackBtn = document.getElementById('track-btn');
+                
+                if (!this.isTracking) {
+                    // 开始记录
+                    this.isTracking = true;
+                    this.trackStartTime = Date.now();
+                    this.currentTrack = this.trajectoryManager.startTracking();
+                    trackBtn.textContent = '停止记录';
+                    trackBtn.classList.add('btn-recording');
+                } else {
+                    // 停止记录
+                    this.isTracking = false;
+                    this.trajectoryManager.stopTracking();
+                    trackBtn.textContent = '开始记录';
+                    trackBtn.classList.remove('btn-recording');
+                    
+                    // 如果有移动记录，显示保存对话框
+                    if (this.currentTrack && this.currentTrack.moves.length > 0) {
+                        this.showSaveDialog();
+                    } else {
+                        // 如果没有移动记录，直接清空currentTrack
+                        this.currentTrack = null;
+                    }
+                }
+            }
+            
+            showHistory() {
+                this.renderHistoryList();
+                document.getElementById('history-modal').classList.add('show');
+            }
+            
+            closeHistory() {
+                document.getElementById('history-modal').classList.remove('show');
+                document.getElementById('compare-panel').style.display = 'none';
+                this.visualizer.clearTrajectories();
+            }
+            
+            renderHistoryList() {
+                const historyList = document.getElementById('history-list');
+                const tracks = this.historyManager.loadTracks();
+                
+                if (tracks.length === 0) {
+                    historyList.innerHTML = '<p style="text-align: center; color: #666;">暂无历史记录</p>';
+                    return;
+                }
+                
+                historyList.innerHTML = tracks.map((track, index) => `
+                    <div class="history-item" data-track-id="${track.id}">
+                        <div class="history-item-header">
+                            <span class="history-item-name">${track.name}</span>
+                            <span class="history-item-stats">${track.totalMoves}步</span>
+                        </div>
+                        <div class="history-item-stats">
+                            ${new Date(track.startTime).toLocaleString()}
+                            ${track.isComplete ? '✅ 已完成' : '❌ 未完成'}
+                        </div>
+                    </div>
+                `).join('');
+                
+                // 添加点击事件
+                historyList.querySelectorAll('.history-item').forEach(item => {
+                    item.addEventListener('click', () => {
+                        item.classList.toggle('selected');
+                        this.updateCompareButton();
+                        this.updateTrajectoryDisplay();
+                    });
+                });
+            }
+            
+            updateCompareButton() {
+                const selectedItems = document.querySelectorAll('.history-item.selected');
+                document.getElementById('compare-btn').disabled = selectedItems.length < 2;
+            }
+            
+            updateTrajectoryDisplay() {
+                this.visualizer.clearTrajectories();
+                const selectedItems = document.querySelectorAll('.history-item.selected');
+                
+                selectedItems.forEach((item, index) => {
+                    const trackId = item.dataset.trackId;
+                    const track = this.historyManager.getTrackById(trackId);
+                    if (track) {
+                        this.visualizer.drawTrajectory(track, index + 1);
+                    }
+                });
+            }
+            
+            compareTrajectories() {
+                const selectedItems = document.querySelectorAll('.history-item.selected');
+                console.log('Selected items for comparison:', selectedItems.length);
+                
+                if (selectedItems.length < 2) {
+                    alert('请至少选择2条轨迹进行对比');
+                    return;
+                }
+                
+                // 清除当前显示的轨迹
+                this.visualizer.clearTrajectories();
+                console.log('Cleared existing trajectories');
+                
+                // 收集选中的轨迹数据和对比信息
+                const compareData = [];
+                selectedItems.forEach((item, index) => {
+                    const trackId = item.dataset.trackId;
+                    const track = this.historyManager.getTrackById(trackId);
+                    console.log(`Track ${index}:`, track);
+                    
+                    if (track) {
+                        compareData.push({
+                            track: track,
+                            colorIndex: index + 1,
+                            name: track.name,
+                            moves: track.totalMoves,
+                            duration: track.endTime ? Math.round((track.endTime - track.startTime) / 1000) : 0,
+                            completed: track.isComplete
+                        });
+                        
+                        // 绘制轨迹
+                        console.log(`Drawing trajectory ${index + 1} with ${track.moves.length} moves`);
+                        this.visualizer.drawTrajectory(track, index + 1);
+                    }
+                });
+                
+                // 显示对比信息面板
+                this.showComparePanel(compareData);
+            }
+            
+            showSaveDialog() {
+                const saveModal = document.getElementById('save-track-modal');
+                const trackNameInput = document.getElementById('track-name');
+                const saveMoves = document.getElementById('save-moves');
+                const saveTime = document.getElementById('save-time');
+                
+                // 生成默认名称
+                const now = new Date();
+                const defaultName = `尝试${now.getMonth()+1}-${now.getDate()} ${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
+                trackNameInput.value = defaultName;
+                
+                // 显示统计信息
+                saveMoves.textContent = this.currentTrack.totalMoves;
+                const duration = Math.round((Date.now() - this.trackStartTime) / 1000);
+                saveTime.textContent = duration;
+                
+                saveModal.classList.add('show');
+            }
+            
+            confirmSaveTrack() {
+                const trackName = document.getElementById('track-name').value.trim();
+                if (!trackName) {
+                    alert('请输入记录名称');
+                    return;
+                }
+                
+                // 添加null检查
+                if (!this.currentTrack) {
+                    console.error('当前轨迹为空，无法保存');
+                    alert('保存失败：轨迹数据丢失');
+                    this.cancelSaveTrack();
+                    return;
+                }
+                
+                // 完善轨迹信息
+                this.currentTrack.name = trackName;
+                this.currentTrack.endTime = Date.now();
+                this.currentTrack.isComplete = this.checkVictory();
+                
+                // 保存到历史记录
+                this.historyManager.saveTrack(this.currentTrack, trackName);
+                
+                // 关闭对话框
+                document.getElementById('save-track-modal').classList.remove('show');
+                
+                // 现在清空currentTrack
+                this.currentTrack = null;
+            }
+            
+            cancelSaveTrack() {
+                document.getElementById('save-track-modal').classList.remove('show');
+                this.currentTrack = null;
+            }
+            
+            showComparePanel(compareData) {
+                const comparePanel = document.getElementById('compare-panel');
+                const compareContent = document.getElementById('compare-content');
+                
+                // 生成对比内容
+                const compareHTML = compareData.map((data, index) => {
+                    const color = this.visualizer.colors[data.colorIndex];
+                    return `
+                        <div class="compare-item" style="border-left-color: ${color};">
+                            <div class="compare-item-name">
+                                <div class="compare-color-indicator" style="background-color: ${color};"></div>
+                                ${data.name}
+                                ${data.completed ? '✅' : '❌'}
+                            </div>
+                            <div class="compare-item-stats">
+                                ${data.moves}步 | ${data.duration}秒
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+                // 添加最佳记录分析
+                const bestMoves = Math.min(...compareData.map(d => d.moves));
+                const bestTime = Math.min(...compareData.filter(d => d.duration > 0).map(d => d.duration));
+                const completedCount = compareData.filter(d => d.completed).length;
+                
+                const summaryHTML = `
+                    <div style="margin-top: 15px; padding: 10px; background: #FFFACD; border-radius: 5px;">
+                        <strong>📈 对比分析：</strong><br>
+                        最少步数: ${bestMoves}步 | 最短用时: ${bestTime > 0 ? bestTime + '秒' : '未知'}<br>
+                        完成率: ${completedCount}/${compareData.length}
+                    </div>
+                `;
+                
+                compareContent.innerHTML = compareHTML + summaryHTML;
+                comparePanel.style.display = 'block';
+            }
+            
+            closeCompare() {
+                document.getElementById('compare-panel').style.display = 'none';
+                this.visualizer.clearTrajectories();
+            }
+        }
+
+        // 轨迹管理器
+        class TrajectoryManager {
+            constructor() {
+                this.tracks = [];
+                this.currentTrackId = null;
+            }
+            
+            startTracking() {
+                const track = {
+                    id: `track_${Date.now()}`,
+                    name: '',
+                    startTime: Date.now(),
+                    endTime: null,
+                    moves: [],
+                    totalMoves: 0,
+                    isComplete: false
+                };
+                
+                this.tracks.push(track);
+                this.currentTrackId = track.id;
+                return track;
+            }
+            
+            stopTracking() {
+                this.currentTrackId = null;
+            }
+            
+            addMove(pieceId, fromPos, toPos) {
+                const currentTrack = this.getCurrentTrack();
+                if (!currentTrack) return;
+                
+                const move = {
+                    pieceId: pieceId,
+                    from: { row: fromPos[0], col: fromPos[1] },
+                    to: { row: toPos[0], col: toPos[1] },
+                    timestamp: Date.now(),
+                    moveNumber: currentTrack.moves.length + 1
+                };
+                
+                console.log('Recording move:', move); // 添加调试
+                currentTrack.moves.push(move);
+                currentTrack.totalMoves = currentTrack.moves.length;
+            }
+            
+            getCurrentTrack() {
+                return this.tracks.find(track => track.id === this.currentTrackId);
+            }
+        }
+        
+        // 历史记录管理器
+        class HistoryManager {
+            constructor() {
+                this.storageKey = 'huarongdao-tracks';
+            }
+            
+            saveTrack(track, name) {
+                const tracks = this.loadTracks();
+                track.name = name;
+                tracks.push(track);
+                localStorage.setItem(this.storageKey, JSON.stringify(tracks));
+            }
+            
+            loadTracks() {
+                try {
+                    const data = localStorage.getItem(this.storageKey);
+                    return data ? JSON.parse(data) : [];
+                } catch (e) {
+                    console.error('加载历史记录失败:', e);
+                    return [];
+                }
+            }
+            
+            deleteTrack(trackId) {
+                const tracks = this.loadTracks();
+                const filteredTracks = tracks.filter(track => track.id !== trackId);
+                localStorage.setItem(this.storageKey, JSON.stringify(filteredTracks));
+            }
+            
+            getTrackById(trackId) {
+                const tracks = this.loadTracks();
+                return tracks.find(track => track.id === trackId);
+            }
+        }
+        
+        // 轨迹可视化器
+        class TrajectoryVisualizer {
+            constructor() {
+                this.svg = null;
+                this.colors = ['#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4'];
+                this.cellSize = 82;
+            }
+            
+            initSVG() {
+                this.svg = document.getElementById('trajectory-svg');
+            }
+            
+            drawTrajectory(track, colorIndex = 0) {
+                if (!this.svg || !track.moves.length) return;
+                
+                const color = this.colors[colorIndex % this.colors.length];
+                const className = colorIndex === 0 ? 'current-track' : `history-track-${colorIndex}`;
+                
+                // 为每个棋子绘制轨迹
+                const pieceTrajectories = {};
+                
+                track.moves.forEach(move => {
+                    if (!pieceTrajectories[move.pieceId]) {
+                        pieceTrajectories[move.pieceId] = [];
+                    }
+                    pieceTrajectories[move.pieceId].push(move);
+                });
+                
+                Object.entries(pieceTrajectories).forEach(([pieceId, moves]) => {
+                    this.drawPieceTrajectory(moves, color, className, pieceId);
+                });
+            }
+            
+            drawPieceTrajectory(moves, color, className, pieceId) {
+                console.log('Drawing piece trajectory for:', pieceId, 'moves:', moves.length);
+                
+                if (moves.length === 0) return;
+                
+                // 为每个移动绘制单独的线段
+                moves.forEach((move, index) => {
+                    const fromPos = this.calculatePosition(move.from.row, move.from.col);
+                    const toPos = this.calculatePosition(move.to.row, move.to.col);
+                    
+                    console.log(`Move ${index}: from (${move.from.row},${move.from.col}) to (${move.to.row},${move.to.col})`);
+                    console.log(`SVG positions: from (${fromPos.x},${fromPos.y}) to (${toPos.x},${toPos.y})`);
+                    
+                    // 创建线段
+                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    line.setAttribute('x1', fromPos.x);
+                    line.setAttribute('y1', fromPos.y);
+                    line.setAttribute('x2', toPos.x);
+                    line.setAttribute('y2', toPos.y);
+                    line.setAttribute('stroke', color);
+                    line.setAttribute('stroke-width', '4');
+                    line.setAttribute('stroke-opacity', '0.8');
+                    line.setAttribute('class', `trajectory-line ${className}`);
+                    line.setAttribute('data-piece', pieceId);
+                    line.setAttribute('data-move', index);
+                    
+                    this.svg.appendChild(line);
+                    
+                    // 添加箭头指示方向
+                    this.addArrowHead(fromPos, toPos, color, index);
+                });
+                
+                // 添加起点和终点标记
+                this.addTrajectoryPoints(moves, color, pieceId);
+            }
+            
+            addArrowHead(fromPos, toPos, color, moveIndex) {
+                const arrowSize = 6;
+                const angle = Math.atan2(toPos.y - fromPos.y, toPos.x - fromPos.x);
+                
+                // 计算箭头位置（线段中点稍微偏向终点）
+                const arrowX = fromPos.x + (toPos.x - fromPos.x) * 0.7;
+                const arrowY = fromPos.y + (toPos.y - fromPos.y) * 0.7;
+                
+                // 创建箭头路径
+                const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+                const x1 = arrowX + arrowSize * Math.cos(angle - Math.PI/6);
+                const y1 = arrowY + arrowSize * Math.sin(angle - Math.PI/6);
+                const x2 = arrowX + arrowSize * Math.cos(angle + Math.PI/6);
+                const y2 = arrowY + arrowSize * Math.sin(angle + Math.PI/6);
+                
+                arrow.setAttribute('points', `${arrowX},${arrowY} ${x1},${y1} ${x2},${y2}`);
+                arrow.setAttribute('fill', color);
+                arrow.setAttribute('opacity', '0.8');
+                arrow.setAttribute('class', 'trajectory-arrow');
+                
+                this.svg.appendChild(arrow);
+            }
+            
+            addTrajectoryPoints(moves, color, pieceId) {
+                if (!moves.length) return;
+                
+                // 起点 - 较大的空心圆
+                const startPos = this.calculatePosition(moves[0].from.row, moves[0].from.col);
+                const startPoint = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                startPoint.setAttribute('cx', startPos.x);
+                startPoint.setAttribute('cy', startPos.y);
+                startPoint.setAttribute('r', '8');
+                startPoint.setAttribute('fill', 'white');
+                startPoint.setAttribute('stroke', color);
+                startPoint.setAttribute('stroke-width', '3');
+                startPoint.setAttribute('class', 'trajectory-start-point');
+                this.svg.appendChild(startPoint);
+                
+                // 添加起点标记文字
+                const startText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                startText.setAttribute('x', startPos.x);
+                startText.setAttribute('y', startPos.y + 4);
+                startText.setAttribute('text-anchor', 'middle');
+                startText.setAttribute('font-size', '10');
+                startText.setAttribute('fill', color);
+                startText.setAttribute('font-weight', 'bold');
+                startText.textContent = 'S';
+                this.svg.appendChild(startText);
+                
+                // 终点 - 实心圆
+                const lastMove = moves[moves.length - 1];
+                const endPos = this.calculatePosition(lastMove.to.row, lastMove.to.col);
+                const endPoint = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                endPoint.setAttribute('cx', endPos.x);
+                endPoint.setAttribute('cy', endPos.y);
+                endPoint.setAttribute('r', '8');
+                endPoint.setAttribute('fill', color);
+                endPoint.setAttribute('stroke', 'white');
+                endPoint.setAttribute('stroke-width', '2');
+                endPoint.setAttribute('class', 'trajectory-end-point');
+                this.svg.appendChild(endPoint);
+                
+                // 添加终点标记文字
+                const endText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                endText.setAttribute('x', endPos.x);
+                endText.setAttribute('y', endPos.y + 4);
+                endText.setAttribute('text-anchor', 'middle');
+                endText.setAttribute('font-size', '10');
+                endText.setAttribute('fill', 'white');
+                endText.setAttribute('font-weight', 'bold');
+                endText.textContent = 'E';
+                this.svg.appendChild(endText);
+            }
+            
+            updateCurrentTrajectory(track) {
+                // 清除当前轨迹
+                this.svg.querySelectorAll('.current-track').forEach(el => el.remove());
+                this.svg.querySelectorAll('[data-current="true"]').forEach(el => el.remove());
+                
+                // 重新绘制当前轨迹
+                this.drawTrajectory(track, 0);
+            }
+            
+            clearTrajectories() {
+                if (this.svg) {
+                    this.svg.innerHTML = '';
+                }
+            }
+            
+            calculatePosition(row, col) {
+                // 计算棋子中心位置 - 考虑网格布局
+                const x = (col - 1) * this.cellSize + this.cellSize / 2;
+                const y = (row - 1) * this.cellSize + this.cellSize / 2;
+                console.log(`Position for (${row},${col}): (${x},${y})`);
+                return { x, y };
+            }
+        }
+
+        // 启动游戏
+        document.addEventListener('DOMContentLoaded', () => {
+            new HuarongdaoGame();
+        });
+    </script>
+</body>
+</html>

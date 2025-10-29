@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>华容道游戏（5×5版）</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: "Microsoft YaHei", "SimSun", sans-serif;
+            background: linear-gradient(135deg, #8B4513, #D2B48C);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .game-container {
+            background: #F5DEB3;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            padding: 20px;
+            text-align: center;
+            max-width: 480px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #8B0000;
+            font-size: 32px;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            font-weight: bold;
+        }
+
+        .game-controls {
+            margin-bottom: 20px;
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            font-size: 14px;
+            color: #654321;
+            font-weight: bold;
+        }
+
+        .control-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background: linear-gradient(145deg, #DEB887, #CD853F);
+            border: none;
+            padding: 8px 15px;
+            border-radius: 8px;
+            color: #654321;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 12px;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            background: linear-gradient(145deg, #CD853F, #DEB887);
+            transform: translateY(-2px);
+            box-shadow: 3px 3px 8px rgba(0,0,0,0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+            box-shadow: 1px 1px 3px rgba(0,0,0,0.2);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .board-container {
+            position: relative;
+            margin: 0 auto;
+            width: 450px; /* 扩展以适配 5×5 */
+            height: 600px;
+        }
+
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(5, 80px); /* 5 列 */
+            grid-template-rows: repeat(5, 80px);    /* 5 行 */
+            gap: 2px;
+            background: #8B4513;
+            padding: 10px;
+            border-radius: 10px;
+            border: 3px solid #654321;
+            margin-bottom: 10px;
+        }
+
+        .cell {
+            background: #DEB887;
+            border: 1px solid #CD853F;
+            border-radius: 3px;
+        }
+
+        .pieces-container {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            width: 408px;  /* 5 列：5*80 + 4*2 */
+            height: 408px; /* 5 行：5*80 + 4*2 */
+            pointer-events: none;
+        }
+
+        .piece {
+            position: absolute;
+            border: 2px solid #654321;
+            border-radius: 8px;
+            cursor: grab;
+            pointer-events: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 12px;
+            color: white;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            transition: all 0.2s ease;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+            user-select: none;
+        }
+
+        .piece:hover {
+            transform: scale(1.05);
+            box-shadow: 3px 3px 8px rgba(0,0,0,0.4);
+        }
+
+        .piece.dragging {
+            opacity: 0.8;
+            z-index: 1000;
+            transform: scale(1.1);
+            cursor: grabbing;
+        }
+
+        .piece.caocao {
+            background: linear-gradient(145deg, #2c5aa0, #1e3f73);
+            width: 80px;
+            height: 164px;
+            font-size: 18px;
+        }
+
+        .piece.zhaoyun {
+            background: linear-gradient(145deg, #f8e71c, #dcc617);
+            width: 80px;
+            height: 164px;
+            font-size: 16px;
+            color: #654321;
+        }
+
+        .piece.guanyu {
+            background: linear-gradient(145deg, #d0021b, #a50116);
+            width: 164px;
+            height: 80px;
+            font-size: 16px;
+        }
+
+        .piece.zhangfei {
+            background: linear-gradient(145deg, #3CB371, #2E8B57);
+            width: 164px;
+            height: 80px;
+            font-size: 16px;
+        }
+
+        .piece.soldier {
+            background: linear-gradient(145deg, #bd10e0, #9a0db8);
+            width: 80px;
+            height: 80px;
+            font-size: 14px;
+        }
+
+        .exit-area {
+            position: absolute;
+            bottom: -14px;
+            left: 174px; /* 对齐第 3 列 */
+            width: 80px;
+            height: 164px; /* 垂直两格 */
+            background: #FFD700;
+            border: 2px dashed #B8860B;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #8B4513;
+        }
+
+        .exit-label {
+            font-size: 14px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #F5DEB3;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            max-width: 300px;
+            width: 90%;
+        }
+
+        .modal h2, .modal h3 {
+            color: #8B0000;
+            margin-bottom: 15px;
+        }
+
+        .modal p {
+            color: #654321;
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+
+        .hint-text {
+            background: #FFFACD;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #FFD700;
+            margin: 15px 0;
+            text-align: left;
+        }
+
+        @media (max-width: 480px) {
+            .game-container {
+                padding: 15px;
+            }
+            h1 {
+                font-size: 24px;
+            }
+            .control-buttons {
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+            button {
+                padding: 6px 12px;
+                font-size: 11px;
+            }
+        }
+
+        .valid-drop-zone {
+            background: rgba(144, 238, 144, 0.5) !important;
+        }
+        .invalid-drop-zone {
+            background: rgba(255, 99, 71, 0.5) !important;
+        }
+
+        .trajectory-svg {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            pointer-events: none;
+            z-index: 600;
+        }
+        .trajectory-line {
+            stroke-width: 4;
+            fill: none;
+            opacity: 0.8;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        .trajectory-arrow {
+            opacity: 0.8;
+        }
+        .trajectory-start-point, .trajectory-end-point {
+            opacity: 1;
+        }
+        .current-track { stroke: #FFD700; }
+        .history-track-1 { stroke: #FF6B6B; }
+        .history-track-2 { stroke: #4ECDC4; }
+        .history-track-3 { stroke: #45B7D1; }
+        .history-track-4 { stroke: #96CEB4; }
+
+        .history-modal-content {
+            max-width: 500px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        .history-list {
+            max-height: 400px;
+            overflow-y: auto;
+            margin: 15px 0;
+        }
+        .history-item {
+            background: #FFFACD;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 4px solid #FFD700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .history-item:hover {
+            background: #FFF8DC;
+            transform: translateX(5px);
+        }
+        .history-item.selected {
+            background: #E6F3FF;
+            border-left-color: #007ACC;
+        }
+        .history-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .history-item-name {
+            font-weight: bold;
+            color: #8B0000;
+        }
+        .history-item-stats {
+            font-size: 12px;
+            color: #666;
+        }
+        .history-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .save-track-form {
+            margin: 15px 0;
+        }
+        .save-track-form label {
+            display: block;
+            margin-bottom: 5px;
+            color: #654321;
+            font-weight: bold;
+        }
+        .save-track-form input {
+            width: 100%;
+            padding: 8px;
+            border: 2px solid #DEB887;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        .track-stats {
+            background: #FFFACD;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        .save-track-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        .btn-recording {
+            background: linear-gradient(145deg, #FF6B6B, #FF5252) !important;
+            color: white !important;
+        }
+
+        .compare-panel {
+            background: #F0F8FF;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+            border: 2px solid #87CEEB;
+        }
+        .compare-panel h4 {
+            color: #1E90FF;
+            margin: 0 0 15px 0;
+            text-align: center;
+        }
+        .compare-content {
+            display: grid;
+            gap: 10px;
+        }
+        .compare-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: white;
+            border-radius: 5px;
+            border-left: 4px solid;
+        }
+        .compare-item-name {
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+        }
+        .compare-color-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .compare-item-stats {
+            font-size: 12px;
+            color: #666;
+        }
+        #close-compare-btn {
+            width: 100%;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>华容道（5×5）</h1>
+
+        <div class="game-controls">
+            <div class="game-info">
+                <span>步数: <span id="move-count">0</span></span>
+                <span>最佳: <span id="best-score">--</span></span>
+            </div>
+            <div class="control-buttons">
+                <button id="hint-btn">提示</button>
+                <button id="undo-btn" disabled>撤销</button>
+                <button id="reset-btn">重开</button>
+                <button id="track-btn">开始记录</button>
+                <button id="history-btn">历史记录</button>
+            </div>
+        </div>
+
+        <div class="board-container">
+            <svg class="trajectory-svg" id="trajectory-svg" width="408" height="408"></svg>
+            <div class="game-board" id="game-board"></div>
+            <div class="pieces-container" id="pieces-container"></div>
+            <div class="exit-area">
+                <div class="exit-label">出口</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="victory-modal">
+        <div class="modal-content">
+            <h2>🎉 恭喜通关！</h2>
+            <p>曹操成功脱逃华容道！</p>
+            <p>总步数: <span id="final-moves">0</span></p>
+            <p id="new-record" style="display: none; color: #FFD700; font-weight: bold;">🏆 新记录！</p>
+            <button id="play-again-btn">再玩一次</button>
+        </div>
+    </div>
+
+    <div class="modal" id="hint-modal">
+        <div class="modal-content">
+            <h3>💡 游戏提示</h3>
+            <div class="hint-text" id="hint-text"></div>
+            <button id="close-hint-btn">知道了</button>
+        </div>
+    </div>
+
+    <div class="modal" id="history-modal">
+        <div class="modal-content history-modal-content">
+            <h3>📊 轨迹历史记录</h3>
+            <div class="history-list" id="history-list"></div>
+            <div class="history-controls">
+                <button id="compare-btn" disabled>对比轨迹</button>
+                <button id="close-history-btn">关闭</button>
+            </div>
+            <div class="compare-panel" id="compare-panel" style="display: none;">
+                <h4>📊 轨迹对比分析</h4>
+                <div class="compare-content" id="compare-content"></div>
+                <button id="close-compare-btn">关闭对比</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="save-track-modal">
+        <div class="modal-content">
+            <h3>💾 保存轨迹记录</h3>
+            <div class="save-track-form">
+                <label for="track-name">记录名称：</label>
+                <input type="text" id="track-name" placeholder="输入记录名称">
+            </div>
+            <div class="track-stats">
+                <p>总步数: <span id="save-moves">0</span></p>
+                <p>用时: <span id="save-time">0</span>秒</p>
+            </div>
+            <div class="save-track-controls">
+                <button id="confirm-save-btn">保存</button>
+                <button id="cancel-save-btn">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class TrajectoryVisualizer {
+            constructor() {
+                this.svg = document.getElementById('trajectory-svg');
+                this.markerId = 'arrowhead';
+                this.colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFD700'];
+            }
+            initSVG() {
+                const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+                const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+                marker.setAttribute('id', this.markerId);
+                marker.setAttribute('markerWidth', '10');
+                marker.setAttribute('markerHeight', '7');
+                marker.setAttribute('refX', '10');
+                marker.setAttribute('refY', '3.5');
+                marker.setAttribute('orient', 'auto');
+                const arrowPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                arrowPath.setAttribute('d', 'M0,0 L10,3.5 L0,7 Z');
+                arrowPath.setAttribute('fill', '#FFD700');
+                marker.appendChild(arrowPath);
+                defs.appendChild(marker);
+                this.svg.appendChild(defs);
+            }
+            drawMove(from, to, colorIndex = 4) {
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', from.x);
+                line.setAttribute('y1', from.y);
+                line.setAttribute('x2', to.x);
+                line.setAttribute('y2', to.y);
+                line.setAttribute('stroke', this.colors[colorIndex % this.colors.length]);
+                line.setAttribute('class', 'trajectory-line current-track');
+                line.setAttribute('marker-end', `url(#${this.markerId})`);
+                this.svg.appendChild(line);
+            }
+            clear() {
+                while (this.svg.firstChild) this.svg.removeChild(this.svg.firstChild);
+                this.initSVG();
+            }
+        }
+
+        class HistoryManager {
+            constructor() {
+                this.key = 'huarongdao-tracks';
+                this.listEl = document.getElementById('history-list');
+                this.compareBtn = document.getElementById('compare-btn');
+                this.comparePanel = document.getElementById('compare-panel');
+                this.compareContent = document.getElementById('compare-content');
+                this.closeCompareBtn = document.getElementById('close-compare-btn');
+                this.selected = new Set();
+                this.bindEvents();
+            }
+            bindEvents() {
+                this.closeCompareBtn.addEventListener('click', () => {
+                    this.comparePanel.style.display = 'none';
+                });
+                this.compareBtn.addEventListener('click', () => {
+                    this.renderCompare();
+                });
+            }
+            getAll() {
+                try {
+                    return JSON.parse(localStorage.getItem(this.key)) || [];
+                } catch {
+                    return [];
+                }
+            }
+            save(track) {
+                const all = this.getAll();
+                all.push(track);
+                localStorage.setItem(this.key, JSON.stringify(all));
+            }
+            renderList() {
+                const all = this.getAll();
+                this.listEl.innerHTML = '';
+                this.selected.clear();
+                this.compareBtn.disabled = all.length < 2;
+
+                all.forEach((t, idx) => {
+                    const item = document.createElement('div');
+                    item.className = 'history-item';
+                    const header = document.createElement('div');
+                    header.className = 'history-item-header';
+                    const name = document.createElement('div');
+                    name.className = 'history-item-name';
+                    name.textContent = `${t.name || '未命名'}（${idx + 1}）`;
+                    const stats = document.createElement('div');
+                    stats.className = 'history-item-stats';
+                    stats.textContent = `步数: ${t.moves.length}, 用时: ${Math.round(t.duration)}秒`;
+                    header.appendChild(name);
+                    header.appendChild(stats);
+                    item.appendChild(header);
+
+                    item.addEventListener('click', () => {
+                        if (item.classList.contains('selected')) {
+                            item.classList.remove('selected');
+                            this.selected.delete(idx);
+                        } else {
+                            item.classList.add('selected');
+                            this.selected.add(idx);
+                        }
+                        this.compareBtn.disabled = this.selected.size < 2;
+                    });
+
+                    this.listEl.appendChild(item);
+                });
+            }
+            renderCompare() {
+                const all = this.getAll();
+                const indices = Array.from(this.selected);
+                if (indices.length < 2) return;
+                this.compareContent.innerHTML = '';
+                indices.slice(0, 4).forEach((i, ci) => {
+                    const t = all[i];
+                    const row = document.createElement('div');
+                    row.className = 'compare-item';
+                    row.style.borderLeftColor = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4'][ci];
+                    const left = document.createElement('div');
+                    left.className = 'compare-item-name';
+                    const dot = document.createElement('span');
+                    dot.className = 'compare-color-indicator';
+                    dot.style.backgroundColor = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4'][ci];
+                    left.appendChild(dot);
+                    left.appendChild(document.createTextNode(t.name || '未命名'));
+                    const right = document.createElement('div');
+                    right.className = 'compare-item-stats';
+                    right.textContent = `步数 ${t.moves.length} | 用时 ${Math.round(t.duration)}秒`;
+                    row.appendChild(left);
+                    row.appendChild(right);
+                    this.compareContent.appendChild(row);
+                });
+                this.comparePanel.style.display = 'block';
+            }
+        }
+
+        class TrajectoryManager {
+            constructor(visualizer) {
+                this.visualizer = visualizer;
+                this.isTracking = false;
+                this.current = null;
+                this.startTime = null;
+            }
+            start() {
+                this.isTracking = true;
+                this.current = { name: '', moves: [], duration: 0, startedAt: Date.now() };
+                this.startTime = performance.now();
+                this.visualizer.clear();
+            }
+            stop() {
+                if (!this.isTracking || !this.current) return null;
+                this.current.duration = (performance.now() - this.startTime) / 1000;
+                const track = this.current;
+                this.isTracking = false;
+                this.current = null;
+                this.startTime = null;
+                return track;
+            }
+            recordMove(pieceId, fromPx, toPx) {
+                if (!this.isTracking || !this.current) return;
+                this.current.moves.push({ pieceId, fromPx, toPx, at: performance.now() });
+                this.visualizer.drawMove(fromPx, toPx);
+            }
+        }
+
+        class HuarongdaoGame {
+            constructor() {
+                this.boardSize = { rows: 5, cols: 5 };
+                this.cellSize = 82; // 包含间隙
+                this.moveCount = 0;
+                this.moveHistory = [];
+                this.bestKey = 'huarongdao-best';
+                this.bestScore = parseInt(localStorage.getItem(this.bestKey)) || null;
+
+                this.pieces = {};
+                this.pieceEls = {};
+                this.occupy = [];
+
+                this.hints = [
+                    "目标是让曹操（蓝色竖直两格）从棋盘底部中央出口逃出。",
+                    "每次只能移动一个棋子一格，棋子不能重叠或越界。",
+                    "小兵灵活，可优先移动为大棋子让路。",
+                    "关羽和张飞是横向棋子，善用左右移动清路。",
+                    "赵云与曹操竖向移动，尽量在中央形成直通出口的通道。",
+                    "优先疏通底部中央（第 3 列）位置，便于曹操下移。",
+                    "观察空格，合理让位，逐步将曹操移到第 3 列底部。"
+                ];
+
+                this.visualizer = new TrajectoryVisualizer();
+                this.visualizer.initSVG();
+                this.historyManager = new HistoryManager();
+                this.trackManager = new TrajectoryManager(this.visualizer);
+
+                this.initializePieces();
+                this.initializeGame();
+                this.bindEvents();
+            }
+
+            initializePieces() {
+                this.pieces = {
+                    caocao: { id: 'caocao', name: '曹操', positions: [[1,5],[2,5]], size: [2,1], className: 'caocao' },
+                    zhangfei: { id: 'zhangfei', name: '张飞', positions: [[2,2],[2,3]], size: [1,2], className: 'zhangfei' },
+                    zhaoyun: { id: 'zhaoyun', name: '赵云', positions: [[3,2],[4,2]], size: [2,1], className: 'zhaoyun' },
+                    guanyu:  { id: 'guanyu',  name: '关羽', positions: [[5,3],[5,4]], size: [1,2], className: 'guanyu' },
+                    soldier1:{ id: 'soldier1',name: '兵',   positions: [[5,2]],         size: [1,1], className: 'soldier' },
+                    soldier2:{ id: 'soldier2',name: '兵',   positions: [[4,4]],         size: [1,1], className: 'soldier' },
+                };
+                this.initialPieces = JSON.parse(JSON.stringify(this.pieces));
+            }
+
+            initializeGame() {
+                this.createBoard();
+                this.createPieces();
+                this.recomputeOccupy();
+                this.updateDisplay();
+            }
+
+            createBoard() {
+                const board = document.getElementById('game-board');
+                board.innerHTML = '';
+                for (let r = 1; r <= this.boardSize.rows; r++) {
+                    for (let c = 1; c <= this.boardSize.cols; c++) {
+                        const cell = document.createElement('div');
+                        cell.className = 'cell';
+                        cell.dataset.row = r;
+                        cell.dataset.col = c;
+                        board.appendChild(cell);
+                    }
+                }
+            }
+
+            createPieces() {
+                const cont = document.getElementById('pieces-container');
+                cont.innerHTML = '';
+                this.pieceEls = {};
+
+                Object.values(this.pieces).forEach(p => {
+                    const el = document.createElement('div');
+                    el.className = `piece ${p.className}`;
+                    el.dataset.pieceId = p.id;
+                    el.textContent = p.name;
+                    this.positionPiece(el, p);
+                    cont.appendChild(el);
+                    this.pieceEls[p.id] = el;
+                    this.bindPieceDrag(el, p);
+                });
+            }
+
+            positionPiece(el, piece) {
+                const topLeft = piece.positions[0];
+                const left = (topLeft[1] - 1) * this.cellSize;
+                const top = (topLeft[0] - 1) * this.cellSize;
+                el.style.left = `${left}px`;
+                el.style.top = `${top}px`;
+            }
+
+            recomputeOccupy(excludeId = null) {
+                const rows = this.boardSize.rows, cols = this.boardSize.cols;
+                this.occupy = Array.from({ length: rows + 1 }, () => Array(cols + 1).fill(null));
+
+                Object.values(this.pieces).forEach(p => {
+                    if (p.id === excludeId) return;
+                    const [h, w] = p.size;
+                    const [r, c] = p.positions[0];
+                    for (let dr = 0; dr < h; dr++) {
+                        for (let dc = 0; dc < w; dc++) {
+                            const rr = r + dr, cc = c + dc;
+                            if (rr >= 1 && rr <= rows && cc >= 1 && cc <= cols) {
+                                this.occupy[rr][cc] = p.id;
+                            }
+                        }
+                    }
+                });
+            }
+
+            isRectFree(r, c, h, w, excludeId = null) {
+                if (r < 1 || c < 1 || r + h - 1 > this.boardSize.rows || c + w - 1 > this.boardSize.cols) {
+                    return false;
+                }
+                for (let dr = 0; dr < h; dr++) {
+                    for (let dc = 0; dc < w; dc++) {
+                        const rr = r + dr, cc = c + dc;
+                        const occ = this.occupy[rr][cc];
+                        if (occ && occ !== excludeId) return false;
+                    }
+                }
+                return true;
+            }
+
+            bindPieceDrag(el, piece) {
+                const onDown = (clientX, clientY) => {
+                    el.classList.add('dragging');
+                    const rect = el.getBoundingClientRect();
+                    const contRect = document.getElementById('pieces-container').getBoundingClientRect();
+                    const start = { x: clientX, y: clientY };
+                    const fromPx = { x: rect.left - contRect.left + rect.width/2, y: rect.top - contRect.top + rect.height/2 };
+                    const cleanup = () => {
+                        el.classList.remove('dragging');
+                        document.removeEventListener('mousemove', moveHandler);
+                        document.removeEventListener('mouseup', upHandler);
+                        document.removeEventListener('touchmove', touchMoveHandler);
+                        document.removeEventListener('touchend', touchEndHandler);
+                    };
+                    const tryMove = (dx, dy) => {
+                        const absX = Math.abs(dx), absY = Math.abs(dy);
+                        if (absX < 15 && absY < 15) return; // 阈值
+                        let dir = null;
+                        if (absX > absY) dir = (dx > 0) ? 'right' : 'left';
+                        else dir = (dy > 0) ? 'down' : 'up';
+                        const res = this.validateMove(piece, dir);
+                        if (res === 'exit') {
+                            // 允许曹操下移出棋盘以胜利
+                            this.onWin();
+                            this.recordMove(piece, fromPx, fromPx); // 不画出界线
+                            cleanup();
+                            return;
+                        }
+                        if (res === true) {
+                            this.applyMove(piece, dir);
+                            const toRect = el.getBoundingClientRect();
+                            const cont2 = document.getElementById('pieces-container').getBoundingClientRect();
+                            const toPx = { x: toRect.left - cont2.left + toRect.width/2, y: toRect.top - cont2.top + toRect.height/2 };
+                            this.recordMove(piece, fromPx, toPx);
+                            cleanup();
+                        }
+                    };
+
+                    const moveHandler = (e) => {
+                        const dx = e.clientX - start.x;
+                        const dy = e.clientY - start.y;
+                        // 仅用于确定方向，不做平滑拖动
+                    };
+                    const upHandler = (e) => {
+                        const dx = e.clientX - start.x;
+                        const dy = e.clientY - start.y;
+                        tryMove(dx, dy);
+                    };
+
+                    const touchMoveHandler = (e) => {
+                        const t = e.touches[0];
+                        const dx = t.clientX - start.x;
+                        const dy = t.clientY - start.y;
+                    };
+                    const touchEndHandler = (e) => {
+                        const t = e.changedTouches[0];
+                        const dx = t.clientX - start.x;
+                        const dy = t.clientY - start.y;
+                        tryMove(dx, dy);
+                    };
+
+                    document.addEventListener('mousemove', moveHandler);
+                    document.addEventListener('mouseup', upHandler);
+                    document.addEventListener('touchmove', touchMoveHandler);
+                    document.addEventListener('touchend', touchEndHandler);
+                };
+
+                el.addEventListener('mousedown', (e) => onDown(e.clientX, e.clientY));
+                el.addEventListener('touchstart', (e) => {
+                    const t = e.touches[0];
+                    onDown(t.clientX, t.clientY);
+                });
+            }
+
+            validateMove(piece, dir) {
+                const [h, w] = piece.size;
+                const [r, c] = piece.positions[0];
+
+                // 曹操出棋盘胜利逻辑：当曹操位于第 3 列底部（4,3）（5,3）时允许向下“出牌”
+                if (piece.id === 'caocao' && dir === 'down') {
+                    // 曹操竖直两格，位于第 3 列且底部紧贴棋盘
+                    const atBottomCenter = (c === 3) && (r + h - 1 === this.boardSize.rows);
+                    if (atBottomCenter) {
+                        return 'exit';
+                    }
+                }
+
+                const nr = r + (dir === 'down' ? 1 : dir === 'up' ? -1 : 0);
+                const nc = c + (dir === 'right' ? 1 : dir === 'left' ? -1 : 0);
+                this.recomputeOccupy(piece.id);
+                return this.isRectFree(nr, nc, h, w, piece.id);
+            }
+
+            applyMove(piece, dir) {
+                const [r, c] = piece.positions[0];
+                const nr = r + (dir === 'down' ? 1 : dir === 'up' ? -1 : 0);
+                const nc = c + (dir === 'right' ? 1 : dir === 'left' ? -1 : 0);
+
+                const prev = JSON.parse(JSON.stringify(piece.positions));
+                piece.positions[0] = [nr, nc];
+                if (piece.size[0] === 2 && piece.size[1] === 1) {
+                    piece.positions[1] = [nr + 1, nc];
+                } else if (piece.size[0] === 1 && piece.size[1] === 2) {
+                    piece.positions[1] = [nr, nc + 1];
+                }
+
+                const el = this.pieceEls[piece.id];
+                this.positionPiece(el, piece);
+                this.recomputeOccupy();
+
+                this.moveHistory.push({ id: piece.id, from: prev, to: JSON.parse(JSON.stringify(piece.positions)) });
+                this.moveCount += 1;
+                this.updateDisplay();
+                document.getElementById('undo-btn').disabled = this.moveHistory.length === 0;
+
+                // 胜利判定（曹操到达底部中央即视为可出）
+                if (piece.id === 'caocao' && piece.positions[0][1] === 3 && piece.positions[0][0] + piece.size[0] - 1 === this.boardSize.rows) {
+                    // 下次下移将胜利，当前不触发
+                }
+            }
+
+            recordMove(piece, fromPx, toPx) {
+                if (this.trackManager.isTracking) {
+                    this.trackManager.recordMove(piece.id, fromPx, toPx);
+                }
+            }
+
+            onWin() {
+                const modal = document.getElementById('victory-modal');
+                document.getElementById('final-moves').textContent = this.moveCount;
+                const newRecord = (!this.bestScore || this.moveCount < this.bestScore);
+                if (newRecord) {
+                    localStorage.setItem(this.bestKey, String(this.moveCount));
+                    document.getElementById('new-record').style.display = 'block';
+                } else {
+                    document.getElementById('new-record').style.display = 'none';
+                }
+                modal.classList.add('show');
+
+                // 结束记录
+                if (this.trackManager.isTracking) {
+                    const track = this.trackManager.stop();
+                    if (track) {
+                        // 打开保存弹窗
+                        document.getElementById('save-moves').textContent = this.moveCount;
+                        document.getElementById('save-time').textContent = Math.round(track.duration);
+                        document.getElementById('save-track-modal').classList.add('show');
+                        // 暂存
+                        this.pendingTrack = track;
+                    }
+                }
+            }
+
+            bindEvents() {
+                document.getElementById('undo-btn').addEventListener('click', () => this.undo());
+                document.getElementById('reset-btn').addEventListener('click', () => this.reset());
+
+                document.getElementById('hint-btn').addEventListener('click', () => {
+                    document.getElementById('hint-text').innerHTML = this.hints.map(h => `• ${h}`).join('<br>');
+                    document.getElementById('hint-modal').classList.add('show');
+                });
+                document.getElementById('close-hint-btn').addEventListener('click', () => {
+                    document.getElementById('hint-modal').classList.remove('show');
+                });
+
+                document.getElementById('play-again-btn').addEventListener('click', () => {
+                    document.getElementById('victory-modal').classList.remove('show');
+                    this.reset();
+                });
+
+                const trackBtn = document.getElementById('track-btn');
+                trackBtn.addEventListener('click', () => {
+                    if (this.trackManager.isTracking) {
+                        // 停止记录并提示保存
+                        const track = this.trackManager.stop();
+                        if (track) {
+                            document.getElementById('save-moves').textContent = this.moveCount;
+                            document.getElementById('save-time').textContent = Math.round(track.duration);
+                            document.getElementById('save-track-modal').classList.add('show');
+                            this.pendingTrack = track;
+                        }
+                        trackBtn.textContent = '开始记录';
+                        trackBtn.classList.remove('btn-recording');
+                    } else {
+                        this.trackManager.start();
+                        trackBtn.textContent = '停止并保存';
+                        trackBtn.classList.add('btn-recording');
+                    }
+                });
+
+                document.getElementById('confirm-save-btn').addEventListener('click', () => {
+                    const name = document.getElementById('track-name').value.trim();
+                    if (this.pendingTrack) {
+                        this.pendingTrack.name = name || `记录-${new Date().toLocaleString()}`;
+                        this.historyManager.save(this.pendingTrack);
+                        this.pendingTrack = null;
+                    }
+                    document.getElementById('save-track-modal').classList.remove('show');
+                });
+                document.getElementById('cancel-save-btn').addEventListener('click', () => {
+                    this.pendingTrack = null;
+                    document.getElementById('save-track-modal').classList.remove('show');
+                });
+
+                document.getElementById('history-btn').addEventListener('click', () => {
+                    this.historyManager.renderList();
+                    document.getElementById('history-modal').classList.add('show');
+                });
+                document.getElementById('close-history-btn').addEventListener('click', () => {
+                    document.getElementById('history-modal').classList.remove('show');
+                });
+            }
+
+            updateDisplay() {
+                document.getElementById('move-count').textContent = this.moveCount;
+                document.getElementById('best-score').textContent = (this.bestScore ?? '--');
+            }
+
+            undo() {
+                if (this.moveHistory.length === 0) return;
+                const last = this.moveHistory.pop();
+                const p = this.pieces[last.id];
+                p.positions = JSON.parse(JSON.stringify(last.from));
+                this.positionPiece(this.pieceEls[p.id], p);
+                this.recomputeOccupy();
+                this.moveCount = Math.max(0, this.moveCount - 1);
+                this.updateDisplay();
+                document.getElementById('undo-btn').disabled = this.moveHistory.length === 0;
+            }
+
+            reset() {
+                this.pieces = JSON.parse(JSON.stringify(this.initialPieces));
+                this.moveCount = 0;
+                this.moveHistory = [];
+                this.createPieces();
+                this.recomputeOccupy();
+                this.updateDisplay();
+                document.getElementById('undo-btn').disabled = true;
+                this.visualizer.clear();
+                if (this.trackManager.isTracking) {
+                    this.trackManager.start(); // 清轨重记
+                }
+            }
+        }
+
+        // 启动游戏
+        window.addEventListener('DOMContentLoaded', () => {
+            new HuarongdaoGame();
+        });
+    </script>
+</body>
+</html>
