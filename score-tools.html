@@ -106,8 +106,8 @@
 
         .filters-container {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
             align-items: end;
         }
 
@@ -226,8 +226,8 @@
             font-size: 1.2em;
             font-weight: 600;
             color: #333;
-            margin-bottom: 15px;
-            text-align: center;
+            margin-bottom: 0;
+            text-align: left;
         }
 
         .data-table-section {
@@ -382,75 +382,80 @@
             }
         }
 
-        .checkbox-group {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            padding: 10px;
+        .filter-group select[multiple] {
+            min-height: 80px;
+            max-height: 120px;
+            padding: 8px;
             border: 2px solid #e0e0e0;
             border-radius: 8px;
-            min-height: 50px;
-            background: linear-gradient(45deg, #f8f9ff, #fff);
-        }
-
-        .checkbox-item {
-            display: flex;
-            align-items: center;
-            padding: 8px 15px;
-            background: white;
-            border: 2px solid #e0e0e0;
-            border-radius: 20px;
-            cursor: pointer;
-            transition: all 0.3s ease;
             font-size: 14px;
+            background: white;
+            transition: all 0.3s ease;
+            line-height: 1.8;
+            resize: vertical;
         }
 
-        .checkbox-item:hover {
+        .filter-group select[multiple]:focus {
+            outline: none;
             border-color: #667eea;
-            background: #f0f2ff;
-            transform: translateY(-1px);
+            box-shadow: 0 0 10px rgba(102, 126, 234, 0.2);
         }
 
-        .checkbox-item.selected {
+        .filter-group select[multiple] option {
+            padding: 6px 10px;
+            margin: 2px 0;
+            border-radius: 4px;
+            background: #f8f9ff;
+            transition: all 0.3s ease;
+        }
+
+        .filter-group select[multiple] option:checked {
             background: linear-gradient(45deg, #667eea, #764ba2);
             color: white;
-            border-color: #667eea;
-            box-shadow: 0 3px 10px rgba(102, 126, 234, 0.3);
+            font-weight: 500;
         }
 
-        .checkbox-item input[type="checkbox"] {
-            display: none;
+        .filter-group select[multiple] option:hover {
+            background: #e8ebff;
         }
 
-        .checkbox-item label {
+        .select-hint {
+            margin-top: 5px;
+            font-size: 11px;
+            color: #999;
+            font-style: italic;
+        }
+
+        .download-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
             cursor: pointer;
-            margin: 0;
-            user-select: none;
-        }
-
-        .checkbox-controls {
-            margin-top: 10px;
-            display: flex;
-            gap: 10px;
-        }
-
-        .btn-small {
-            padding: 6px 16px;
-            border: 2px solid #667eea;
-            background: white;
-            color: #667eea;
-            border-radius: 15px;
-            cursor: pointer;
-            font-size: 12px;
+            font-size: 14px;
             font-weight: 500;
             transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
         }
 
-        .btn-small:hover {
-            background: #667eea;
-            color: white;
-            transform: translateY(-1px);
-            box-shadow: 0 3px 10px rgba(102, 126, 234, 0.3);
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .download-btn:active {
+            transform: translateY(0);
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
         }
     </style>
 </head>
@@ -483,14 +488,11 @@
                     </select>
                 </div>
                 <div class="filter-group">
-                    <label>筛选学科</label>
-                    <div class="checkbox-group" id="subjectFilter">
-                        <!-- 动态生成复选框 -->
-                    </div>
-                    <div class="checkbox-controls">
-                        <button type="button" id="selectAllBtn" class="btn-small">全选</button>
-                        <button type="button" id="clearAllBtn" class="btn-small">清空</button>
-                    </div>
+                    <label for="subjectFilter">筛选学科</label>
+                    <select id="subjectFilter" multiple>
+                        <!-- 动态生成option -->
+                    </select>
+                    <div class="select-hint">按住 Ctrl (Windows) 或 Cmd (Mac) 多选</div>
                 </div>
                 <div class="filter-group">
                     <label for="studentSearch">搜索学生</label>
@@ -509,20 +511,29 @@
                 <div class="stats-grid" id="statsGrid"></div>
 
                 <div class="chart-container">
-                    <div class="chart-title">📈 个人成绩趋势</div>
+                    <div class="chart-header">
+                        <div class="chart-title">📈 个人成绩趋势</div>
+                        <button class="download-btn" id="downloadTrendBtn" title="下载图表">
+                            <span>📥</span>
+                            <span>下载</span>
+                        </button>
+                    </div>
                     <canvas id="trendChart"></canvas>
                 </div>
 
+      
                 <div class="chart-container">
-                    <div class="chart-title">📊 班级平均分对比</div>
-                    <canvas id="averageChart"></canvas>
+                    <div class="chart-header">
+                        <div class="chart-title">🏆 班级排名趋势</div>
+                        <button class="download-btn" id="downloadRankingBtn" title="下载排名图表">
+                            <span>📥</span>
+                            <span>下载</span>
+                        </button>
+                    </div>
+                    <canvas id="rankingChart"></canvas>
                 </div>
 
-                <div class="chart-container">
-                    <div class="chart-title">🎯 学科成绩分布</div>
-                    <canvas id="distributionChart"></canvas>
-                </div>
-            </div>
+              </div>
         </div>
 
         <div class="data-table-section" id="dataTableSection">
@@ -549,7 +560,6 @@
                 const uploadArea = document.getElementById('uploadArea');
                 const fileInput = document.getElementById('fileInput');
                 const classSelect = document.getElementById('classSelect');
-                const subjectFilter = document.getElementById('subjectFilter');
                 const studentSearch = document.getElementById('studentSearch');
 
                 uploadArea.addEventListener('click', () => fileInput.click());
@@ -577,13 +587,39 @@
                         this.displayStudents();
                         this.displayClassStats();
                         this.displayCharts();
+                        this.displayDataTable();
                     }
                 });
 
-                // 复选框组事件在updateSubjectsFilter方法中处理
+                // 添加学科筛选事件监听器
+                const subjectFilter = document.getElementById('subjectFilter');
+                subjectFilter.addEventListener('change', (e) => {
+                    this.selectedSubjects = Array.from(e.target.selectedOptions).map(option => option.value);
+                    this.displayStudents();
+                    this.displayCharts();
+                    this.displayDataTable();
+                });
 
                 studentSearch.addEventListener('input', (e) => {
                     this.filterStudents(e.target.value);
+                });
+
+                // 添加下载按钮事件监听器
+                document.getElementById('downloadTrendBtn').addEventListener('click', () => {
+                    if (this.currentStudent) {
+                        this.downloadChart('trendChart', `${this.currentStudent}_成绩趋势图.png`);
+                    } else {
+                        alert('请先选择一个学生');
+                    }
+                });
+
+                // 添加排名图表下载按钮事件监听器
+                document.getElementById('downloadRankingBtn').addEventListener('click', () => {
+                    if (this.currentStudent) {
+                        this.downloadChart('rankingChart', `${this.currentStudent}_班级排名趋势.png`);
+                    } else {
+                        alert('请先选择一个学生');
+                    }
                 });
             }
 
@@ -601,6 +637,11 @@
                     document.getElementById('filtersSection').style.display = 'block';
                     document.getElementById('mainContent').style.display = 'grid';
                     document.getElementById('dataTableSection').style.display = 'block';
+
+                    // 显示详细数据表格
+                    if (this.currentClass) {
+                        this.displayDataTable();
+                    }
 
                 } catch (error) {
                     console.error('文件处理错误:', error);
@@ -727,52 +768,16 @@
 
                 if (this.currentClass && this.data[this.currentClass]) {
                     this.data[this.currentClass].subjects.forEach(subject => {
-                        const checkboxItem = document.createElement('div');
-                        checkboxItem.className = 'checkbox-item';
-                        checkboxItem.innerHTML = `
-                            <input type="checkbox" id="subject_${subject}" value="${subject}">
-                            <label for="subject_${subject}">${subject}</label>
-                        `;
-
-                        checkboxItem.addEventListener('click', () => {
-                            const checkbox = checkboxItem.querySelector('input[type="checkbox"]');
-                            checkbox.checked = !checkbox.checked;
-                            checkboxItem.classList.toggle('selected', checkbox.checked);
-                            this.updateSelectedSubjects();
-                        });
-
-                        subjectFilter.appendChild(checkboxItem);
+                        const option = document.createElement('option');
+                        option.value = subject;
+                        option.textContent = subject;
+                        option.selected = true; // 默认全选
+                        subjectFilter.appendChild(option);
                     });
                 }
 
-                // 添加全选/清空按钮事件
-                document.getElementById('selectAllBtn').onclick = () => this.selectAllSubjects(true);
-                document.getElementById('clearAllBtn').onclick = () => this.selectAllSubjects(false);
-
-                // 默认选择所有学科
-                this.selectAllSubjects(true);
-            }
-
-            updateSelectedSubjects() {
-                const checkboxes = document.querySelectorAll('#subjectFilter input[type="checkbox"]:checked');
-                this.selectedSubjects = Array.from(checkboxes).map(cb => cb.value);
-                this.displayStudents();
-                this.displayCharts();
-            }
-
-            selectAllSubjects(select) {
-                const checkboxes = document.querySelectorAll('#subjectFilter input[type="checkbox"]');
-                const items = document.querySelectorAll('#subjectFilter .checkbox-item');
-
-                checkboxes.forEach(checkbox => {
-                    checkbox.checked = select;
-                });
-
-                items.forEach(item => {
-                    item.classList.toggle('selected', select);
-                });
-
-                this.updateSelectedSubjects();
+                // 初始化选中的学科
+                this.selectedSubjects = Array.from(this.data[this.currentClass].subjects);
             }
 
             calculateSelectedSubjectAverage(student) {
@@ -792,6 +797,17 @@
                     avgScore = student.totalScores.reduce((sum, score) => sum + score, 0) / student.totalScores.length;
                 }
                 return avgScore;
+            }
+
+            calculateClassSubjectAverage(subject) {
+                const exams = this.data[this.currentClass].exams;
+                return exams.map(exam => {
+                    const subjectScores = exam.data
+                        .map(student => student[subject] || 0)
+                        .filter(score => score > 0);
+                    return subjectScores.length > 0 ?
+                        subjectScores.reduce((sum, score) => sum + score, 0) / subjectScores.length : 0;
+                });
             }
 
             displayStudents() {
@@ -827,6 +843,7 @@
                         studentItem.classList.add('active');
                         this.currentStudent = studentName;
                         this.displayStudentCharts();
+                        this.displayDataTable(); // 更新表格高亮
                     });
 
                     studentsList.appendChild(studentItem);
@@ -859,7 +876,7 @@
                 const subjectCount = classData.subjects.size;
 
                 const avgTotal = Object.values(classData.students).reduce((sum, student) => {
-                    return sum + (student.totalScores.reduce((s, score) => s + score, 0) / student.totalScores.length);
+                    return sum + this.calculateSelectedSubjectAverage(student);
                 }, 0) / studentCount;
 
                 const stats = [
@@ -882,15 +899,13 @@
 
             displayCharts() {
                 if (!this.currentClass || !this.data[this.currentClass]) return;
-
-                this.displayAverageChart();
-                this.displayDistributionChart();
             }
 
             displayStudentCharts() {
                 if (!this.currentStudent || !this.currentClass) return;
 
                 this.displayTrendChart();
+                this.displayRankingChart();
             }
 
             displayTrendChart() {
@@ -908,26 +923,36 @@
 
                 this.selectedSubjects.forEach((subject, index) => {
                     if (student.scores[subject]) {
+                        // 个人成绩（实线）
                         datasets.push({
-                            label: subject,
+                            label: `${subject} (个人)`,
                             data: student.scores[subject],
                             borderColor: colors[index % colors.length],
                             backgroundColor: colors[index % colors.length] + '20',
-                            tension: 0.3
+                            tension: 0.3,
+                            borderWidth: 2,
+                            pointRadius: 6,
+                            pointHoverRadius: 8,
+                            pointBorderWidth: 2,
+                            pointBackgroundColor: '#fff'
+                        });
+
+                        // 班级平均分（虚线）
+                        datasets.push({
+                            label: `${subject} (班级平均)`,
+                            data: this.calculateClassSubjectAverage(subject),
+                            borderColor: colors[index % colors.length],
+                            backgroundColor: colors[index % colors.length] + '10',
+                            borderDash: [5, 5],
+                            tension: 0.3,
+                            borderWidth: 2,
+                            pointRadius: 5,
+                            pointHoverRadius: 7,
+                            pointBorderWidth: 2,
+                            pointBackgroundColor: '#fff'
                         });
                     }
                 });
-
-                if (student.totalScores.length > 0) {
-                    datasets.push({
-                        label: '总分',
-                        data: student.totalScores,
-                        borderColor: '#ff6384',
-                        backgroundColor: '#ff638420',
-                        tension: 0.3,
-                        borderWidth: 3
-                    });
-                }
 
                 this.charts.trend = new Chart(ctx, {
                     type: 'line',
@@ -937,13 +962,35 @@
                     },
                     options: {
                         responsive: true,
+                        animation: {
+                            onComplete: () => {
+                                const chartInstance = this.charts.trend;
+                                const ctx = chartInstance.ctx;
+
+                                ctx.font = Chart.helpers.fontString(12, 'normal', Chart.defaults.font.family);
+                                ctx.textAlign = 'center';
+                                ctx.textBaseline = 'bottom';
+
+                                chartInstance.data.datasets.forEach((dataset, i) => {
+                                    const meta = chartInstance.getDatasetMeta(i);
+                                    meta.data.forEach((element, index) => {
+                                        const data = dataset.data[index];
+                                        if (data !== null && data !== undefined && data !== '-') {
+                                            // 成绩显示1位小数
+                                            ctx.fillStyle = dataset.borderColor;
+                                            ctx.fillText(data.toFixed(1), element.x, element.y - 8);
+                                        }
+                                    });
+                                });
+                            }
+                        },
                         plugins: {
                             legend: {
                                 position: 'top',
                             },
                             title: {
                                 display: true,
-                                text: `${this.currentStudent} 的成绩趋势`
+                                text: `${this.currentStudent} 的成绩趋势 (个人 vs 班级平均)`
                             }
                         },
                         scales: {
@@ -955,117 +1002,210 @@
                 });
             }
 
-            displayAverageChart() {
-                const ctx = document.getElementById('averageChart').getContext('2d');
+  
+          calculateRankings() {
+              const student = this.data[this.currentClass].students[this.currentStudent];
+              const exams = this.data[this.currentClass].exams;
+              const rankings = {};
 
-                if (this.charts.average) {
-                    this.charts.average.destroy();
+              this.selectedSubjects.forEach(subject => {
+                  rankings[subject] = [];
+
+                  exams.forEach((exam, examIndex) => {
+                      // 获取所有学生在本次考试该学科的成绩
+                      const examScores = exam.data
+                          .map(studentData => ({
+                              name: studentData['姓名'],
+                              score: studentData[subject] || 0
+                          }))
+                          .filter(item => item.score > 0)
+                          .sort((a, b) => b.score - a.score);
+
+                      // 找到当前学生的排名
+                      const currentStudentRank = examScores.findIndex(item =>
+                          item.name === this.currentStudent) + 1;
+
+                      rankings[subject].push(currentStudentRank || '-');
+                  });
+              });
+
+              return rankings;
+          }
+
+          displayRankingChart() {
+              const ctx = document.getElementById('rankingChart').getContext('2d');
+
+              if (this.charts.ranking) {
+                  this.charts.ranking.destroy();
+              }
+
+              const rankings = this.calculateRankings();
+              const exams = this.data[this.currentClass].exams;
+              const datasets = [];
+              const colors = ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4facfe'];
+
+              this.selectedSubjects.forEach((subject, index) => {
+                  datasets.push({
+                      label: `${subject} 排名`,
+                      data: rankings[subject],
+                      borderColor: colors[index % colors.length],
+                      backgroundColor: colors[index % colors.length] + '20',
+                      tension: 0.3,
+                      borderWidth: 2,
+                      pointRadius: 6,
+                      pointHoverRadius: 8,
+                      pointBorderWidth: 2,
+                      pointBackgroundColor: '#fff'
+                  });
+              });
+
+              this.charts.ranking = new Chart(ctx, {
+                  type: 'line',
+                  data: {
+                      labels: exams.map(exam => exam.name),
+                      datasets: datasets
+                  },
+                  options: {
+                      responsive: true,
+                      animation: {
+                          onComplete: () => {
+                              const chartInstance = this.charts.ranking;
+                              const ctx = chartInstance.ctx;
+
+                              ctx.font = Chart.helpers.fontString(12, 'bold', Chart.defaults.font.family);
+                              ctx.textAlign = 'center';
+                              ctx.textBaseline = 'bottom';
+
+                              chartInstance.data.datasets.forEach((dataset, i) => {
+                                  const meta = chartInstance.getDatasetMeta(i);
+                                  meta.data.forEach((element, index) => {
+                                      const data = dataset.data[index];
+                                      if (data !== null && data !== undefined && data !== '-' && typeof data === 'number') {
+                                          // 排名显示为整数
+                                          ctx.fillStyle = dataset.borderColor;
+                                          ctx.fillText(`第${data}名`, element.x, element.y - 8);
+                                      }
+                                  });
+                              });
+                          }
+                      },
+                      plugins: {
+                          legend: {
+                              position: 'top',
+                          },
+                          title: {
+                              display: true,
+                              text: `${this.currentStudent} 的班级排名趋势`
+                          }
+                      },
+                      scales: {
+                          y: {
+                              reverse: true, // 排名越小越好，所以反转Y轴
+                              beginAtZero: false,
+                              title: {
+                                  display: true,
+                                  text: '班级排名'
+                              }
+                          }
+                      }
+                  }
+              });
+          }
+
+        displayDataTable() {
+            const tableHead = document.getElementById('tableHead');
+            const tableBody = document.getElementById('tableBody');
+
+            // 清空现有内容
+            tableHead.innerHTML = '';
+            tableBody.innerHTML = '';
+
+            if (!this.currentClass || !this.data[this.currentClass]) return;
+
+            const classData = this.data[this.currentClass];
+            const students = classData.students;
+            const exams = classData.exams;
+            const selectedSubjects = this.selectedSubjects;
+
+            // 构建表头
+            const headerRow = document.createElement('tr');
+            headerRow.innerHTML = '<th>学号</th><th>姓名</th>';
+
+            selectedSubjects.forEach(subject => {
+                exams.forEach((exam, examIndex) => {
+                    const th = document.createElement('th');
+                    th.textContent = `${exam.name}-${subject}`;
+                    headerRow.appendChild(th);
+                });
+            });
+
+            tableHead.appendChild(headerRow);
+
+            // 构建表格数据
+            Object.keys(students).forEach(studentName => {
+                const student = students[studentName];
+                const row = document.createElement('tr');
+
+                // 如果是当前选中的学生，添加高亮样式
+                if (studentName === this.currentStudent) {
+                    row.style.backgroundColor = 'rgba(102, 126, 234, 0.1)';
+                    row.style.border = '2px solid #667eea';
                 }
 
-                const exams = this.data[this.currentClass].exams;
-                const subjects = Array.from(this.data[this.currentClass].subjects);
+                row.innerHTML = `
+                    <td>${student.学号 || ''}</td>
+                    <td><strong>${studentName}</strong></td>
+                `;
 
-                const datasets = [];
-                const colors = ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4facfe'];
-
-                // 只显示选中的学科
-                this.selectedSubjects.forEach((subject, index) => {
-                    const avgScores = exams.map(exam => {
-                        const subjectScores = exam.data
-                            .map(student => student[subject] || 0)
-                            .filter(score => score > 0);
-                        return subjectScores.reduce((sum, score) => sum + score, 0) / subjectScores.length;
-                    });
-
-                    datasets.push({
-                        label: subject,
-                        data: avgScores,
-                        borderColor: colors[index % colors.length],
-                        backgroundColor: colors[index % colors.length] + '20',
-                        tension: 0.3
-                    });
-                });
-
-                this.charts.average = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: exams.map(exam => exam.name),
-                        datasets: datasets
-                    },
-                    options: {
-                        responsive: true,
-                        plugins: {
-                            legend: {
-                                position: 'top',
-                            },
-                            title: {
-                                display: true,
-                                text: '班级各科平均分趋势'
-                            }
-                        },
-                        scales: {
-                            y: {
-                                beginAtZero: true
-                            }
-                        }
+                // 添加各科成绩
+                selectedSubjects.forEach(subject => {
+                    if (student.scores[subject]) {
+                        student.scores[subject].forEach(score => {
+                            const td = document.createElement('td');
+                            td.textContent = score > 0 ? score.toFixed(1) : '-';
+                            td.style.textAlign = 'center';
+                            row.appendChild(td);
+                        });
+                    } else {
+                        exams.forEach(() => {
+                            const td = document.createElement('td');
+                            td.textContent = '-';
+                            td.style.textAlign = 'center';
+                            row.appendChild(td);
+                        });
                     }
                 });
-            }
 
-            displayDistributionChart() {
-                const ctx = document.getElementById('distributionChart').getContext('2d');
-
-                if (this.charts.distribution) {
-                    this.charts.distribution.destroy();
-                }
-
-                // 只显示选中的学科
-                const subjects = this.selectedSubjects.length > 0 ? this.selectedSubjects : Array.from(this.data[this.currentClass].subjects);
-                const latestExam = this.data[this.currentClass].exams[this.data[this.currentClass].exams.length - 1];
-
-                const avgScores = subjects.map(subject => {
-                    const subjectScores = latestExam.data
-                        .map(student => student[subject] || 0)
-                        .filter(score => score > 0);
-                    return subjectScores.reduce((sum, score) => sum + score, 0) / subjectScores.length;
-                });
-
-                this.charts.distribution = new Chart(ctx, {
-                    type: 'radar',
-                    data: {
-                        labels: subjects,
-                        datasets: [{
-                            label: '最新考试平均分',
-                            data: avgScores,
-                            borderColor: '#667eea',
-                            backgroundColor: '#667eea40',
-                            pointBackgroundColor: '#667eea',
-                            pointBorderColor: '#fff',
-                            pointHoverBackgroundColor: '#fff',
-                            pointHoverBorderColor: '#667eea'
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        plugins: {
-                            legend: {
-                                position: 'top',
-                            },
-                            title: {
-                                display: true,
-                                text: '各科目成绩分布'
-                            }
-                        },
-                        scales: {
-                            r: {
-                                beginAtZero: true,
-                                max: 100
-                            }
-                        }
-                    }
-                });
-            }
+                tableBody.appendChild(row);
+            });
         }
+
+          downloadChart(chartId, filename) {
+              const canvas = document.getElementById(chartId);
+              if (!canvas) return;
+
+              // 创建临时canvas设置白色背景
+              const tempCanvas = document.createElement('canvas');
+              const tempCtx = tempCanvas.getContext('2d');
+              tempCanvas.width = canvas.width;
+              tempCanvas.height = canvas.height;
+
+              // 填充白色背景
+              tempCtx.fillStyle = '#ffffff';
+              tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+
+              // 将原图表绘制到白色背景上
+              tempCtx.drawImage(canvas, 0, 0);
+
+              const url = tempCanvas.toDataURL('image/png');
+              const link = document.createElement('a');
+              link.download = filename || 'chart.png';
+              link.href = url;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+          }
+          }
 
         document.addEventListener('DOMContentLoaded', () => {
             new ScoreAnalyzer();
