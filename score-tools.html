@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>班级成绩数据分析工具</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .upload-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            animation: fadeIn 1s ease-out;
+        }
+
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: linear-gradient(45deg, #f8f9ff, #fff);
+        }
+
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: linear-gradient(45deg, #f0f2ff, #f8f9ff);
+            transform: translateY(-2px);
+        }
+
+        .upload-area.dragover {
+            background: linear-gradient(45deg, #e8ebff, #f0f2ff);
+            border-color: #4c5fd5;
+        }
+
+        .upload-icon {
+            font-size: 3em;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .upload-text {
+            font-size: 1.2em;
+            color: #555;
+            margin-bottom: 10px;
+        }
+
+        .upload-hint {
+            font-size: 0.9em;
+            color: #888;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .filters-section {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            display: none;
+            animation: slideInLeft 0.5s ease-out;
+        }
+
+        .filters-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            align-items: end;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .filter-group label {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .filter-group select,
+        .filter-group input {
+            padding: 10px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        .filter-group select:focus,
+        .filter-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+            display: none;
+        }
+
+        .students-panel {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            max-height: 600px;
+            overflow-y: auto;
+            animation: slideInLeft 0.6s ease-out;
+        }
+
+        .students-panel h3 {
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .student-item {
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            background: linear-gradient(45deg, #f8f9ff, #fff);
+        }
+
+        .student-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
+            border-color: #667eea;
+        }
+
+        .student-item.active {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border-color: #667eea;
+        }
+
+        .student-name {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .student-info {
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+
+        .student-rank {
+            display: inline-block;
+            background: rgba(102, 126, 234, 0.1);
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            margin-left: 10px;
+        }
+
+        .student-item.active .student-rank {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .charts-panel {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            animation: slideInRight 0.6s ease-out;
+        }
+
+        .chart-container {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(45deg, #f8f9ff, #fff);
+            border-radius: 10px;
+        }
+
+        .chart-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .data-table-section {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            display: none;
+            animation: fadeInUp 0.7s ease-out;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .data-table th {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            font-weight: 600;
+        }
+
+        .data-table tr:hover {
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .no-data-message {
+            text-align: center;
+            color: #888;
+            font-size: 1.1em;
+            padding: 50px;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            opacity: 0.9;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+
+            .students-panel {
+                max-height: 400px;
+            }
+
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .filters-container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 班级成绩数据分析工具</h1>
+            <p>上传Excel文件，智能分析学生成绩趋势和班级排名</p>
+        </div>
+
+        <div class="upload-section">
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📁</div>
+                <div class="upload-text">点击或拖拽Excel文件到此处</div>
+                <div class="upload-hint">支持多个Excel文件，每个文件代表一个班级</div>
+                <input type="file" class="file-input" id="fileInput" multiple accept=".xlsx,.xls">
+            </div>
+            <div class="loading" id="loading">
+                <div class="loading-spinner"></div>
+                <p>正在处理文件...</p>
+            </div>
+        </div>
+
+        <div class="filters-section" id="filtersSection">
+            <div class="filters-container">
+                <div class="filter-group">
+                    <label for="classSelect">选择班级</label>
+                    <select id="classSelect">
+                        <option value="">请选择班级</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="subjectFilter">筛选学科</label>
+                    <select id="subjectFilter" multiple style="height: 80px;">
+                        <option value="">全选</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="studentSearch">搜索学生</label>
+                    <input type="text" id="studentSearch" placeholder="输入学生姓名...">
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content" id="mainContent">
+            <div class="students-panel">
+                <h3>📚 学生列表</h3>
+                <div id="studentsList"></div>
+            </div>
+
+            <div class="charts-panel">
+                <div class="stats-grid" id="statsGrid"></div>
+
+                <div class="chart-container">
+                    <div class="chart-title">📈 个人成绩趋势</div>
+                    <canvas id="trendChart"></canvas>
+                </div>
+
+                <div class="chart-container">
+                    <div class="chart-title">📊 班级平均分对比</div>
+                    <canvas id="averageChart"></canvas>
+                </div>
+
+                <div class="chart-container">
+                    <div class="chart-title">🎯 学科成绩分布</div>
+                    <canvas id="distributionChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="data-table-section" id="dataTableSection">
+            <h3>📋 详细成绩数据</h3>
+            <table class="data-table" id="dataTable">
+                <thead id="tableHead"></thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        class ScoreAnalyzer {
+            constructor() {
+                this.data = {};
+                this.currentClass = '';
+                this.currentStudent = '';
+                this.selectedSubjects = [];
+                this.charts = {};
+                this.initializeEventListeners();
+            }
+
+            initializeEventListeners() {
+                const uploadArea = document.getElementById('uploadArea');
+                const fileInput = document.getElementById('fileInput');
+                const classSelect = document.getElementById('classSelect');
+                const subjectFilter = document.getElementById('subjectFilter');
+                const studentSearch = document.getElementById('studentSearch');
+
+                uploadArea.addEventListener('click', () => fileInput.click());
+                fileInput.addEventListener('change', (e) => this.handleFiles(e.target.files));
+
+                uploadArea.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    uploadArea.classList.add('dragover');
+                });
+
+                uploadArea.addEventListener('dragleave', () => {
+                    uploadArea.classList.remove('dragover');
+                });
+
+                uploadArea.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    uploadArea.classList.remove('dragover');
+                    this.handleFiles(e.dataTransfer.files);
+                });
+
+                classSelect.addEventListener('change', (e) => {
+                    this.currentClass = e.target.value;
+                    if (this.currentClass) {
+                        this.updateSubjectsFilter();
+                        this.displayStudents();
+                        this.displayClassStats();
+                        this.displayCharts();
+                    }
+                });
+
+                subjectFilter.addEventListener('change', (e) => {
+                    this.selectedSubjects = Array.from(e.target.selectedOptions).map(option => option.value);
+                    this.displayCharts();
+                    this.displayStudents();
+                });
+
+                studentSearch.addEventListener('input', (e) => {
+                    this.filterStudents(e.target.value);
+                });
+            }
+
+            async handleFiles(files) {
+                document.getElementById('loading').style.display = 'block';
+
+                try {
+                    for (const file of files) {
+                        if (file.name.match(/\.(xlsx|xls)$/)) {
+                            await this.processExcelFile(file);
+                        }
+                    }
+
+                    this.updateClassSelect();
+                    document.getElementById('filtersSection').style.display = 'block';
+                    document.getElementById('mainContent').style.display = 'grid';
+                    document.getElementById('dataTableSection').style.display = 'block';
+
+                } catch (error) {
+                    console.error('文件处理错误:', error);
+                    alert('文件处理失败，请检查文件格式是否正确');
+                } finally {
+                    document.getElementById('loading').style.display = 'none';
+                }
+            }
+
+            async processExcelFile(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const data = new Uint8Array(e.target.result);
+                            const workbook = XLSX.read(data, {type: 'array'});
+
+                            const className = file.name.replace(/\.(xlsx|xls)$/, '');
+                            this.data[className] = {
+                                exams: [],
+                                students: {},
+                                subjects: new Set()
+                            };
+
+                            workbook.SheetNames.forEach(sheetName => {
+                                const worksheet = workbook.Sheets[sheetName];
+                                const jsonData = XLSX.utils.sheet_to_json(worksheet, {header: 1});
+
+                                if (jsonData.length > 1) {
+                                    this.processSheetData(className, sheetName, jsonData);
+                                }
+                            });
+
+                            resolve();
+                        } catch (error) {
+                            reject(error);
+                        }
+                    };
+                    reader.readAsArrayBuffer(file);
+                });
+            }
+
+            processSheetData(className, sheetName, jsonData) {
+                const headers = jsonData[0];
+                const studentIdIndex = headers.findIndex(h => h.includes('学号'));
+                const studentNameIndex = headers.findIndex(h => h.includes('姓名'));
+
+                if (studentIdIndex === -1 || studentNameIndex === -1) {
+                    console.warn(`跳过表头格式不正确的工作表: ${sheetName}`);
+                    return;
+                }
+
+                const exam = {
+                    name: sheetName,
+                    data: []
+                };
+
+                const subjects = headers.slice(2);
+                subjects.forEach(subject => {
+                    if (subject) this.data[className].subjects.add(subject);
+                });
+
+                for (let i = 1; i < jsonData.length; i++) {
+                    const row = jsonData[i];
+                    if (row.length <= studentNameIndex) continue;
+
+                    const studentName = row[studentNameIndex];
+                    const studentId = row[studentIdIndex] || '';
+
+                    if (!studentName) continue;
+
+                    const studentData = {
+                        学号: studentId,
+                        姓名: studentName
+                    };
+
+                    subjects.forEach((subject, index) => {
+                        const score = parseFloat(row[index + 2]) || 0;
+                        studentData[subject] = score;
+                    });
+
+                    exam.data.push(studentData);
+
+                    if (!this.data[className].students[studentName]) {
+                        this.data[className].students[studentName] = {
+                            学号: studentId,
+                            scores: {},
+                            totalScores: []
+                        };
+                    }
+
+                    subjects.forEach((subject, subjIndex) => {
+                        if (!this.data[className].students[studentName].scores[subject]) {
+                            this.data[className].students[studentName].scores[subject] = [];
+                        }
+                        const score = parseFloat(row[subjIndex + 2]) || 0;
+                        this.data[className].students[studentName].scores[subject].push(score);
+                    });
+
+                    const totalScore = subjects.reduce((sum, subject, subjIndex) => {
+                        return sum + (parseFloat(row[subjIndex + 2]) || 0);
+                    }, 0);
+                    this.data[className].students[studentName].totalScores.push(totalScore);
+                }
+
+                this.data[className].exams.push(exam);
+            }
+
+            updateClassSelect() {
+                const classSelect = document.getElementById('classSelect');
+                classSelect.innerHTML = '<option value="">请选择班级</option>';
+
+                Object.keys(this.data).forEach(className => {
+                    const option = document.createElement('option');
+                    option.value = className;
+                    option.textContent = className;
+                    classSelect.appendChild(option);
+                });
+            }
+
+            updateSubjectsFilter() {
+                const subjectFilter = document.getElementById('subjectFilter');
+                subjectFilter.innerHTML = '<option value="">全选</option>';
+
+                if (this.currentClass && this.data[this.currentClass]) {
+                    this.data[this.currentClass].subjects.forEach(subject => {
+                        const option = document.createElement('option');
+                        option.value = subject;
+                        option.textContent = subject;
+                        subjectFilter.appendChild(option);
+                    });
+                }
+
+                this.selectedSubjects = Array.from(this.data[this.currentClass].subjects);
+            }
+
+            displayStudents() {
+                const studentsList = document.getElementById('studentsList');
+                studentsList.innerHTML = '';
+
+                if (!this.currentClass || !this.data[this.currentClass]) return;
+
+                const students = this.data[this.currentClass].students;
+                const sortedStudents = Object.keys(students).sort((a, b) => {
+                    const aAvg = students[a].totalScores.reduce((sum, score) => sum + score, 0) / students[a].totalScores.length;
+                    const bAvg = students[b].totalScores.reduce((sum, score) => sum + score, 0) / students[b].totalScores.length;
+                    return bAvg - aAvg;
+                });
+
+                sortedStudents.forEach((studentName, index) => {
+                    const student = students[studentName];
+                    const avgScore = student.totalScores.reduce((sum, score) => sum + score, 0) / student.totalScores.length;
+
+                    const studentItem = document.createElement('div');
+                    studentItem.className = 'student-item';
+                    studentItem.innerHTML = `
+                        <div class="student-name">${studentName}
+                            <span class="student-rank">第${index + 1}名</span>
+                        </div>
+                        <div class="student-info">平均分: ${avgScore.toFixed(1)}分</div>
+                    `;
+
+                    studentItem.addEventListener('click', () => {
+                        document.querySelectorAll('.student-item').forEach(item => {
+                            item.classList.remove('active');
+                        });
+                        studentItem.classList.add('active');
+                        this.currentStudent = studentName;
+                        this.displayStudentCharts();
+                    });
+
+                    studentsList.appendChild(studentItem);
+                });
+            }
+
+            filterStudents(searchTerm) {
+                const studentItems = document.querySelectorAll('.student-item');
+                const term = searchTerm.toLowerCase();
+
+                studentItems.forEach(item => {
+                    const studentName = item.querySelector('.student-name').textContent.toLowerCase();
+                    if (studentName.includes(term)) {
+                        item.style.display = 'block';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+            }
+
+            displayClassStats() {
+                const statsGrid = document.getElementById('statsGrid');
+                statsGrid.innerHTML = '';
+
+                if (!this.currentClass || !this.data[this.currentClass]) return;
+
+                const classData = this.data[this.currentClass];
+                const studentCount = Object.keys(classData.students).length;
+                const examCount = classData.exams.length;
+                const subjectCount = classData.subjects.size;
+
+                const avgTotal = Object.values(classData.students).reduce((sum, student) => {
+                    return sum + (student.totalScores.reduce((s, score) => s + score, 0) / student.totalScores.length);
+                }, 0) / studentCount;
+
+                const stats = [
+                    { label: '学生人数', value: studentCount },
+                    { label: '考试次数', value: examCount },
+                    { label: '科目数量', value: subjectCount },
+                    { label: '班级平均分', value: avgTotal.toFixed(1) }
+                ];
+
+                stats.forEach(stat => {
+                    const statCard = document.createElement('div');
+                    statCard.className = 'stat-card';
+                    statCard.innerHTML = `
+                        <div class="stat-value">${stat.value}</div>
+                        <div class="stat-label">${stat.label}</div>
+                    `;
+                    statsGrid.appendChild(statCard);
+                });
+            }
+
+            displayCharts() {
+                if (!this.currentClass || !this.data[this.currentClass]) return;
+
+                this.displayAverageChart();
+                this.displayDistributionChart();
+            }
+
+            displayStudentCharts() {
+                if (!this.currentStudent || !this.currentClass) return;
+
+                this.displayTrendChart();
+            }
+
+            displayTrendChart() {
+                const ctx = document.getElementById('trendChart').getContext('2d');
+
+                if (this.charts.trend) {
+                    this.charts.trend.destroy();
+                }
+
+                const student = this.data[this.currentClass].students[this.currentStudent];
+                const exams = this.data[this.currentClass].exams;
+
+                const datasets = [];
+                const colors = ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4facfe'];
+
+                this.selectedSubjects.forEach((subject, index) => {
+                    if (student.scores[subject]) {
+                        datasets.push({
+                            label: subject,
+                            data: student.scores[subject],
+                            borderColor: colors[index % colors.length],
+                            backgroundColor: colors[index % colors.length] + '20',
+                            tension: 0.3
+                        });
+                    }
+                });
+
+                if (student.totalScores.length > 0) {
+                    datasets.push({
+                        label: '总分',
+                        data: student.totalScores,
+                        borderColor: '#ff6384',
+                        backgroundColor: '#ff638420',
+                        tension: 0.3,
+                        borderWidth: 3
+                    });
+                }
+
+                this.charts.trend = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: exams.map(exam => exam.name),
+                        datasets: datasets
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            title: {
+                                display: true,
+                                text: `${this.currentStudent} 的成绩趋势`
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            }
+
+            displayAverageChart() {
+                const ctx = document.getElementById('averageChart').getContext('2d');
+
+                if (this.charts.average) {
+                    this.charts.average.destroy();
+                }
+
+                const exams = this.data[this.currentClass].exams;
+                const subjects = Array.from(this.data[this.currentClass].subjects);
+
+                const datasets = [];
+                const colors = ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4facfe'];
+
+                subjects.forEach((subject, index) => {
+                    const avgScores = exams.map(exam => {
+                        const subjectScores = exam.data
+                            .map(student => student[subject] || 0)
+                            .filter(score => score > 0);
+                        return subjectScores.reduce((sum, score) => sum + score, 0) / subjectScores.length;
+                    });
+
+                    datasets.push({
+                        label: subject,
+                        data: avgScores,
+                        borderColor: colors[index % colors.length],
+                        backgroundColor: colors[index % colors.length] + '20',
+                        tension: 0.3
+                    });
+                });
+
+                this.charts.average = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: exams.map(exam => exam.name),
+                        datasets: datasets
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            title: {
+                                display: true,
+                                text: '班级各科平均分趋势'
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            }
+
+            displayDistributionChart() {
+                const ctx = document.getElementById('distributionChart').getContext('2d');
+
+                if (this.charts.distribution) {
+                    this.charts.distribution.destroy();
+                }
+
+                const subjects = Array.from(this.data[this.currentClass].subjects);
+                const latestExam = this.data[this.currentClass].exams[this.data[this.currentClass].exams.length - 1];
+
+                const avgScores = subjects.map(subject => {
+                    const subjectScores = latestExam.data
+                        .map(student => student[subject] || 0)
+                        .filter(score => score > 0);
+                    return subjectScores.reduce((sum, score) => sum + score, 0) / subjectScores.length;
+                });
+
+                this.charts.distribution = new Chart(ctx, {
+                    type: 'radar',
+                    data: {
+                        labels: subjects,
+                        datasets: [{
+                            label: '最新考试平均分',
+                            data: avgScores,
+                            borderColor: '#667eea',
+                            backgroundColor: '#667eea40',
+                            pointBackgroundColor: '#667eea',
+                            pointBorderColor: '#fff',
+                            pointHoverBackgroundColor: '#fff',
+                            pointHoverBorderColor: '#667eea'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            title: {
+                                display: true,
+                                text: '各科目成绩分布'
+                            }
+                        },
+                        scales: {
+                            r: {
+                                beginAtZero: true,
+                                max: 100
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            new ScoreAnalyzer();
+        });
+    </script>
+</body>
+</html>
